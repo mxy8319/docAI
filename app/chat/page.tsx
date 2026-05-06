@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { Header } from "./components/Header";
+import { Upload } from "./components/Upload";
+import { HistoryList } from "./components/HistoryList";
+import { Chat } from "./components/Chat";
 
 interface Message {
   id: string;
@@ -21,7 +25,6 @@ interface Document {
 }
 
 export default function ChatPage() {
-  const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -45,13 +48,18 @@ export default function ChatPage() {
     },
   ]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const [selectedDocId, setSelectedDocId] = useState<string>("1");
 
+  const user = {
+    name: "User",
+    image: null,
+  };
+
+  const handleSend = (content: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content,
     };
 
     const aiMessage: Message = {
@@ -68,130 +76,34 @@ export default function ChatPage() {
     };
 
     setMessages([...messages, userMessage, aiMessage]);
-    setInput("");
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+  const handleUpload = (files: FileList) => {
+    console.log("上传文件:", files);
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="h-16 border-b border-gray-200 bg-white flex items-center px-6 justify-between">
-        <div className="font-semibold text-gray-800 text-lg">DocAI</div>
-        <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
-          <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center">
-            <span className="text-sm text-gray-600">U</span>
-          </div>
-          <span className="text-sm text-gray-600">退出</span>
-        </button>
-      </header>
+    <div className="h-screen flex flex-col bg-background">
+      <Header user={user} />
 
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-80 border-r border-gray-200 bg-white flex flex-col">
-          <div className="p-4 border-b border-gray-200">
-            <div className="border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 p-6 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors">
-              <div className="text-4xl mb-2">📤</div>
-              <p className="text-gray-600 text-sm">拖拽或点击上传文档</p>
-              <p className="text-gray-400 text-xs mt-1">PDF / TXT / MD，最大 50 页</p>
-            </div>
+        <aside className="hidden md:flex md:w-72 border-r border-outline/20 bg-surface-container-lowest flex-col shrink-0">
+          <div className="p-4 border-b border-outline/20">
+            <Upload onUpload={handleUpload} />
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="text-sm font-medium text-gray-500 mb-3">我的文档</div>
-            <div className="space-y-1">
-              {documents.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="p-3 rounded-lg hover:bg-gray-100 cursor-pointer border-l-4 border-transparent"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-lg">📄</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-700 truncate">
-                        {doc.name}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        {doc.pages} 页 ·{" "}
-                        {doc.status === "done" && "✅ 解析完成"}
-                        {doc.status === "parsing" && "⚙️ 解析中..."}
-                        {doc.status === "pending" && "⏳ 等待处理"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <HistoryList 
+            documents={documents} 
+            selectedId={selectedDocId}
+            onSelect={setSelectedDocId}
+          />
         </aside>
 
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-            <div className="max-w-3xl mx-auto space-y-6">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-2xl px-5 py-4 ${
-                      message.role === "user"
-                        ? "bg-gray-800 text-white rounded-2xl rounded-br-md"
-                        : "bg-white text-gray-700 rounded-2xl rounded-bl-md border border-gray-200"
-                    }`}
-                  >
-                    <p className="leading-relaxed">{message.content}</p>
-
-                    {message.citations && message.citations.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="text-xs font-medium text-gray-500 mb-2">引用来源</div>
-                        {message.citations.map((citation, index) => (
-                          <div
-                            key={index}
-                            className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-primary-800 text-sm cursor-pointer hover:bg-primary-100 transition-colors"
-                          >
-                            📄 {citation.document} · 第 {citation.page} 页
-                            <p className="text-xs mt-1 text-primary-700 opacity-80">
-                              {citation.text}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-t border-gray-200 bg-white p-4">
-            <div className="max-w-3xl mx-auto">
-              <div className="bg-gray-50 rounded-xl flex items-end px-4">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="输入您的问题..."
-                  className="flex-1 bg-transparent py-4 outline-none text-gray-700 resize-none max-h-32 min-h-[56px]"
-                  rows={1}
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim()}
-                  className="mb-3 w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center hover:bg-primary-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  ➤
-                </button>
-              </div>
-              <p className="text-center text-xs text-gray-400 mt-2">
-                Enter 发送，Shift + Enter 换行
-              </p>
-            </div>
-          </div>
-        </div>
+        <Chat 
+          messages={messages} 
+          onSend={handleSend}
+          userAvatar={user.image}
+        />
       </div>
     </div>
   );
