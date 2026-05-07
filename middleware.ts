@@ -9,10 +9,10 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/chat")) {
-    if (!session) {
-      console.log("[Middleware] 未登录，跳转到 /login");
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
+    // if (!session) {
+    //   console.log("[Middleware] 未登录，跳转到 /login");
+    //   return NextResponse.redirect(new URL("/login", request.url));
+    // }
   }
 
   if (pathname === "/login") {

@@ -4,7 +4,7 @@ interface DocPreviewProps {
   text: string;
 }
 
-export function DocPreview({ document, page, text }: DocPreviewProps) {
+export default function DocPreview({ document, page, text }: DocPreviewProps) {
   return (
     <div className="bg-surface-container-low rounded-lg p-3 text-on-secondary-container text-body-md cursor-pointer hover:bg-surface-container transition-colors">
       <div className="flex items-center gap-2 text-label-md mb-1">
