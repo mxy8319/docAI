@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Avatar } from "./Avatar";
 
 interface HeaderProps {
   user?: {
