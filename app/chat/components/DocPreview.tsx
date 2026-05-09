@@ -1,7 +1,7 @@
 interface DocPreviewProps {
-  document: string;
-  page: number;
-  text: string;
+  document?: string;
+  page?: number;
+  text?: string;
 }
 
 export default function DocPreview({ document, page, text }: DocPreviewProps) {

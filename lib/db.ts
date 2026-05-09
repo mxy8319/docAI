@@ -680,7 +680,7 @@ export async function getUserDocumentStats(userId: string): Promise<{
 }> {
   const { data: docs, error: docsError } = await supabaseAdmin
     .from("documents")
-    .select("status")
+    .select("id, status")
     .eq("user_id", userId);
 
   if (docsError) {

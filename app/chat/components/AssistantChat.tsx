@@ -4,8 +4,8 @@ import { useState } from "react";
 import { AssistantRuntimeProvider, useAui } from "@assistant-ui/react";
 import { useChatRuntime, AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { Thread } from "@/components/assistant-ui/thread";
-import { ThreadList } from "@/components/assistant-ui/thread-list";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { Sidebar } from "./Sidebar";
 
 export default function AssistantChat() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -37,11 +37,12 @@ export default function AssistantChat() {
       <div className="flex-1 flex overflow-hidden">
         {isSidebarOpen && (
           <>
-            <aside className="hidden md:flex md:w-56 border-r border-outline/20 bg-surface-container-lowest flex-col shrink-0">
+            {/* <aside className="hidden md:flex md:w-56 border-r border-outline/20 bg-surface-container-lowest flex-col shrink-0">
               <div className="flex-1 overflow-y-auto">
                 <ThreadList />
               </div>
-            </aside>
+            </aside> */}
+            <Sidebar />
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="hidden md:flex md:w-6 items-center justify-center border-r border-outline/20 bg-surface-container-lowest hover:bg-surface-container-low transition-colors"
