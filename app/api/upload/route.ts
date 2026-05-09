@@ -1,8 +1,8 @@
-import { auth } from "@/auth";
 import { createDocument, updateDocumentStatus } from "@/lib/db";
 import { createDocumentFilePath, uploadFile } from "@/lib/storage";
+import { createClient } from "@/lib/supabase-server";
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = 1 * 1024 * 1024;
 const PDF_MIME_TYPES = new Set(["application/pdf", "application/x-pdf"]);
 
 function isPdf(file: File): boolean {
@@ -22,8 +22,13 @@ function getErrorMessage(error: unknown): string {
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
       return errorResponse("Unauthorized", 401);
     }
 
@@ -39,13 +44,13 @@ export async function POST(req: Request) {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return errorResponse("File too large (max 50MB)", 400);
+      return errorResponse("File too large (max 1MB)", 400);
     }
 
-    const filePath = createDocumentFilePath(session.user.id, file.name);
+    const filePath = createDocumentFilePath(user.id, file.name);
 
     const document = await createDocument({
-      user_id: session.user.id,
+      user_id: user.id,
       file_name: file.name,
       file_path: filePath,
       file_size: file.size,
@@ -60,7 +65,7 @@ export async function POST(req: Request) {
     try {
       const buffer = await file.arrayBuffer();
 
-      await uploadFile(session.user.id, file.name, buffer, {
+      await uploadFile(user.id, file.name, buffer, {
         filePath,
         contentType: file.type || "application/pdf",
       });

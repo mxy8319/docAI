@@ -1,12 +1,25 @@
-
 import AssistantChat from "./components/AssistantChat";
 import DocPreview from "./components/DocPreview";
 import { Header } from "./components/Header";
+import { createClient } from "@/lib/supabase-server";
 
-export default function ChatPage() {
+export default async function ChatPage() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const metadata = user?.user_metadata ?? {};
+
   return (
     <div className="h-screen flex flex-col bg-background">
-      <Header />
+      <Header
+        user={{
+          name: metadata.name || metadata.user_name || user?.email,
+          email: user?.email,
+          image: metadata.avatar_url,
+        }}
+      />
       <div className="flex-1 flex">
         <div className="flex-[3] flex">
           <AssistantChat />

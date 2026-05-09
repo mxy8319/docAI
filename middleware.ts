@@ -1,30 +1,26 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/auth";
+import { updateSession } from "@/lib/supabase-middleware";
 
 export async function middleware(request: NextRequest) {
-  const session = await auth();
-
-  console.log('session', session)
   const { pathname } = request.nextUrl;
+  const { response, user } = await updateSession(request);
 
   if (pathname.startsWith("/chat")) {
-    // if (!session) {
-    //   console.log("[Middleware] 未登录，跳转到 /login");
-    //   return NextResponse.redirect(new URL("/login", request.url));
-    // }
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
   }
 
   if (pathname === "/login") {
-    if (session) {
-      console.log("[Middleware] 已登录，跳转到 /chat");
+    if (user) {
       return NextResponse.redirect(new URL("/chat", request.url));
     }
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  matcher: ["/chat/:path*", "/login"],
+  matcher: ["/chat/:path*", "/login", "/auth/callback"],
 };

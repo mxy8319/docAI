@@ -6,7 +6,7 @@ interface UploadProps {
   onUpload?: (files: File[]) => void;
 }
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = 1 *1024 * 1024;
 
 function isPdf(file: File) {
   return file.name.toLowerCase().endsWith(".pdf");
@@ -34,7 +34,7 @@ export function Upload({ onUpload }: UploadProps) {
         }
 
         if (file.size > MAX_FILE_SIZE) {
-          failedFiles.push(`${file.name}: 文件不能超过 50MB`);
+          failedFiles.push(`${file.name}: 文件不能超过 1MB`);
           continue;
         }
 
@@ -141,7 +141,7 @@ export function Upload({ onUpload }: UploadProps) {
       <p className="text-label-md text-on-surface">
         {isUploading ? "上传中..." : "拖拽或点击上传文档"}
       </p>
-      <p className="text-label-sm text-on-surface-variant mt-1">PDF，最大 50MB</p>
+      <p className="text-label-sm text-on-surface-variant mt-1">PDF，最大 1MB</p>
     </div>
   );
 }
