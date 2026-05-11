@@ -1,5 +1,6 @@
 import AssistantChat from "./components/AssistantChat";
 import DocPreview from "./components/DocPreview";
+import { CitationPreviewProvider } from "./components/CitationPreviewContext";
 import { Header } from "./components/Header";
 import { createClient } from "@/lib/supabase-server";
 
@@ -20,13 +21,15 @@ export default async function ChatPage() {
           image: metadata.avatar_url,
         }}
       />
-      <div className="flex-1 flex">
-        <div className="flex-[3] flex">
-          <AssistantChat />
-        </div>
-        <div className="flex-[1] border-l border-outline/20 bg-surface-container-lowest">
-          <DocPreview />
-        </div>
+      <div className="flex min-h-0 flex-1">
+        <CitationPreviewProvider>
+          <div className="flex min-h-0 flex-[3]">
+            <AssistantChat />
+          </div>
+          <div className="flex min-h-0 flex-[1] border-l border-outline/20 bg-surface-container-lowest">
+            <DocPreview />
+          </div>
+        </CitationPreviewProvider>
       </div>
     </div>
   );

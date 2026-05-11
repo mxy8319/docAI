@@ -1,0 +1,17 @@
+import { resource, tapMemo, tapState } from "@assistant-ui/tap";
+import { detectTrigger } from "./detectTrigger.js";
+/** Tracks cursor position and derives the active trigger + query from composer text. */
+export const TriggerDetectionResource = resource(({ text, triggerChar, }) => {
+    const [cursorPosition, setCursorPosition] = tapState(text.length);
+    const trigger = tapMemo(() => {
+        const pos = Math.min(cursorPosition, text.length);
+        return detectTrigger(text, triggerChar, pos);
+    }, [cursorPosition, text, triggerChar]);
+    const query = trigger?.query ?? "";
+    return {
+        trigger,
+        query,
+        setCursorPosition,
+    };
+});
+//# sourceMappingURL=triggerDetectionResource.js.map

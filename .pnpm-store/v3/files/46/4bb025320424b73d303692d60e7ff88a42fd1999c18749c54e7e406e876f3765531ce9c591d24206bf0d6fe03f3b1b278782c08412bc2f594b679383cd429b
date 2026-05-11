@@ -1,0 +1,36 @@
+"use client";
+import { jsx as _jsx } from "react/jsx-runtime";
+import { createContext, useContext, useRef, useCallback, useMemo, } from "react";
+const ComposerInputPluginRegistryContext = createContext(null);
+export const useComposerInputPluginRegistry = () => {
+    const ctx = useContext(ComposerInputPluginRegistryContext);
+    if (!ctx)
+        throw new Error("useComposerInputPluginRegistry must be used within a ComposerInputPluginProvider");
+    return ctx;
+};
+export const useComposerInputPluginRegistryOptional = () => {
+    return useContext(ComposerInputPluginRegistryContext);
+};
+export const ComposerInputPluginProvider = ({ children, }) => {
+    const pluginsRef = useRef(new Map());
+    const snapshotRef = useRef([]);
+    const refreshSnapshot = useCallback(() => {
+        const entries = Array.from(pluginsRef.current.entries());
+        // Sort by priority descending; stable insertion order for equal priorities.
+        entries.sort((a, b) => b[1] - a[1]);
+        snapshotRef.current = entries.map(([plugin]) => plugin);
+    }, []);
+    const register = useCallback((plugin, opts) => {
+        const priority = opts?.priority ?? 0;
+        pluginsRef.current.set(plugin, priority);
+        refreshSnapshot();
+        return () => {
+            pluginsRef.current.delete(plugin);
+            refreshSnapshot();
+        };
+    }, [refreshSnapshot]);
+    const getPlugins = useCallback(() => snapshotRef.current, []);
+    const registry = useMemo(() => ({ register, getPlugins }), [register, getPlugins]);
+    return (_jsx(ComposerInputPluginRegistryContext.Provider, { value: registry, children: children }));
+};
+//# sourceMappingURL=ComposerInputPluginContext.js.map

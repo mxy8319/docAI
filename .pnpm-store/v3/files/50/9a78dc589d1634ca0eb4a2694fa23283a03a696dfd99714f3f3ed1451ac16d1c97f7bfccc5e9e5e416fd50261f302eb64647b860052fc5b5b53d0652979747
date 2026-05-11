@@ -1,0 +1,22 @@
+/** Detected trigger position within the composer text. */
+export type DetectedTrigger = {
+    readonly offset: number;
+    readonly query: string;
+};
+export type TriggerDetectionResourceOutput = {
+    /** Detected trigger (or `null` when inactive). */
+    readonly trigger: DetectedTrigger | null;
+    /** Current query string (empty when no trigger active). */
+    readonly query: string;
+    /** Update the tracked cursor position (wired to composer input). */
+    setCursorPosition(pos: number): void;
+};
+/** Tracks cursor position and derives the active trigger + query from composer text. */
+export declare const TriggerDetectionResource: (props: {
+    text: string;
+    triggerChar: string;
+}) => import("@assistant-ui/tap").ResourceElement<TriggerDetectionResourceOutput, {
+    text: string;
+    triggerChar: string;
+}>;
+//# sourceMappingURL=triggerDetectionResource.d.ts.map

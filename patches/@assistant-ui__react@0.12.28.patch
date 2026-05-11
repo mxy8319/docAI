@@ -1,0 +1,17 @@
+diff --git a/dist/primitives/composer/ComposerInput.js b/dist/primitives/composer/ComposerInput.js
+index 65d9274f51799f8b49a12a926a5ad7e9d3f6e0a0..e946105367157a63db45dcfcaa2d73d6c0d7cb65 100644
+--- a/dist/primitives/composer/ComposerInput.js
++++ b/dist/primitives/composer/ComposerInput.js
+@@ -161,10 +161,8 @@ export const ComposerPrimitiveInput = forwardRef(({ autoFocus = false, asChild,
+         onChange: composeEventHandlers(onChange, (e) => {
+             if (!aui.composer().getState().isEditing)
+                 return;
+-            const isComposing = e.nativeEvent.isComposing === true ||
+-                compositionRef.current;
+-            if (isComposing)
+-                return;
++            // Sync on every change (including IME composition) so controlled `value`
++            // matches the textarea; skipping updates during CJK composition breaks input.
+             flushResourcesSync(() => {
+                 aui.composer().setText(e.target.value);
+             });

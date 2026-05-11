@@ -1,0 +1,11 @@
+"use client";
+import { jsx as _jsx } from "react/jsx-runtime";
+import { forwardRef } from "react";
+import { DropdownMenuRenderItem } from "../dropdownMenuRenderPrimitives.js";
+import { useDropdownMenuScope } from "./scope.js";
+export const ActionBarMorePrimitiveItem = forwardRef(({ __scopeActionBarMore, ...rest }, ref) => {
+    const scope = useDropdownMenuScope(__scopeActionBarMore);
+    return _jsx(DropdownMenuRenderItem, { ...scope, ...rest, ref: ref });
+});
+ActionBarMorePrimitiveItem.displayName = "ActionBarMorePrimitive.Item";
+//# sourceMappingURL=ActionBarMoreItem.js.map

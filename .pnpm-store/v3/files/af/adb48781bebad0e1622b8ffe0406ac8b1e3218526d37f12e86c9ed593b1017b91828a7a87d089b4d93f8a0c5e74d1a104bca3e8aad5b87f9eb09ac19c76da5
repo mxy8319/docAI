@@ -1,0 +1,129 @@
+"use client";
+import { useMemo } from "react";
+import { useAui } from "@assistant-ui/store";
+import { unstable_defaultDirectiveFormatter } from "@assistant-ui/core";
+/**
+ * @deprecated Under active development and might change without notice.
+ *
+ * Creates a spreadable `{ adapter, directive }` bundle for `@` mentions.
+ * Supports tools registered via `useAssistantTool`, explicit items, or both —
+ * flat or categorized.
+ *
+ * @example
+ * ```tsx
+ * const mention = unstable_useMentionAdapter();
+ * <ComposerTriggerPopover char="@" {...mention} />
+ * ```
+ */
+export function unstable_useMentionAdapter(options) {
+    // biome-ignore lint/correctness/useHookAtTopLevel: intentional conditional/nested hook usage
+    const aui = useAui();
+    const items = options?.items;
+    const categories = options?.categories;
+    const includeTools = options?.includeModelContextTools ?? (!items && !categories);
+    const toolsConfig = typeof includeTools === "object" ? includeTools : undefined;
+    const wantsTools = includeTools !== false;
+    const formatter = options?.formatter;
+    const onInserted = options?.onInserted;
+    // biome-ignore lint/correctness/useHookAtTopLevel: intentional conditional/nested hook usage
+    const adapter = useMemo(() => {
+        const getModelContextTools = () => {
+            if (!wantsTools)
+                return [];
+            const ctx = aui.thread().getModelContext();
+            const tools = ctx.tools;
+            if (!tools)
+                return [];
+            const formatLabel = toolsConfig?.formatLabel;
+            const defaultIcon = toolsConfig?.icon;
+            return Object.entries(tools).map(([name, tool]) => toTriggerItem({
+                id: name,
+                type: "tool",
+                label: formatLabel ? formatLabel(name) : name,
+                description: tool.description ?? undefined,
+                icon: defaultIcon,
+            }));
+        };
+        // Categorized: drill-down mode
+        if (categories && categories.length > 0) {
+            const groups = categories.map((cat) => ({
+                id: cat.id,
+                label: cat.label,
+                items: cat.items.map(toTriggerItem),
+            }));
+            let toolCategory = null;
+            if (wantsTools) {
+                const toolItems = getModelContextTools();
+                if (toolItems.length > 0) {
+                    toolCategory = {
+                        id: toolsConfig?.category?.id ?? "tools",
+                        label: toolsConfig?.category?.label ?? "Tools",
+                        items: toolItems,
+                    };
+                }
+            }
+            const allGroups = toolCategory ? [...groups, toolCategory] : groups;
+            return {
+                categories: () => allGroups.map(({ id, label }) => ({ id, label })),
+                categoryItems: (id) => allGroups.find((g) => g.id === id)?.items ?? [],
+                search: (query) => {
+                    const lower = query.toLowerCase();
+                    return allGroups
+                        .flatMap((g) => g.items)
+                        .filter((item) => matchesQuery(item, lower));
+                },
+            };
+        }
+        // Flat: items + (optionally) tools, all in one search pool
+        const flatItems = (items ?? []).map(toTriggerItem);
+        const getFlatPool = () => {
+            if (!wantsTools)
+                return flatItems;
+            const toolItems = getModelContextTools();
+            // Dedupe by id — explicit items win.
+            const seen = new Set(flatItems.map((i) => i.id));
+            return [...flatItems, ...toolItems.filter((t) => !seen.has(t.id))];
+        };
+        return {
+            categories: () => [],
+            categoryItems: () => [],
+            search: (query) => {
+                const lower = query.toLowerCase();
+                return getFlatPool().filter((item) => matchesQuery(item, lower));
+            },
+        };
+    }, [aui, items, categories, wantsTools, toolsConfig]);
+    // biome-ignore lint/correctness/useHookAtTopLevel: `unstable_` prefix not recognized as hook
+    const directive = useMemo(() => ({
+        formatter: formatter ?? unstable_defaultDirectiveFormatter,
+        ...(onInserted ? { onInserted } : {}),
+    }), [formatter, onInserted]);
+    return {
+        adapter,
+        directive,
+        ...(options?.iconMap ? { iconMap: options.iconMap } : {}),
+        ...(options?.fallbackIcon ? { fallbackIcon: options.fallbackIcon } : {}),
+    };
+}
+function toTriggerItem(m) {
+    const metadata = m.icon !== undefined ? { ...(m.metadata ?? {}), icon: m.icon } : m.metadata;
+    return {
+        id: m.id,
+        type: m.type,
+        label: m.label,
+        ...(m.description !== undefined ? { description: m.description } : {}),
+        ...(metadata !== undefined ? { metadata } : {}),
+    };
+}
+function matchesQuery(item, lower) {
+    if (!lower)
+        return true;
+    if (item.id.toLowerCase().includes(lower))
+        return true;
+    if (item.label.toLowerCase().includes(lower))
+        return true;
+    if (item.description?.toLowerCase().includes(lower))
+        return true;
+    return false;
+}
+//# sourceMappingURL=useMentionAdapter.js.map

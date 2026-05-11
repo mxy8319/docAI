@@ -1,0 +1,12 @@
+"use client";
+import { jsx as _jsx } from "react/jsx-runtime";
+import { forwardRef, } from "react";
+import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
+import { DropdownMenuRenderContent } from "../dropdownMenuRenderPrimitives.js";
+import { useDropdownMenuScope } from "./scope.js";
+export const ActionBarMorePrimitiveContent = forwardRef(({ __scopeActionBarMore, portalProps, sideOffset = 4, ...props }, forwardedRef) => {
+    const scope = useDropdownMenuScope(__scopeActionBarMore);
+    return (_jsx(DropdownMenuPrimitive.Portal, { ...scope, ...portalProps, children: _jsx(DropdownMenuRenderContent, { ...scope, ...props, ref: forwardedRef, sideOffset: sideOffset }) }));
+});
+ActionBarMorePrimitiveContent.displayName = "ActionBarMorePrimitive.Content";
+//# sourceMappingURL=ActionBarMoreContent.js.map

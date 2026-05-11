@@ -1,9 +1,8 @@
 import {
   ComposerAddAttachment,
-  ComposerAttachments,
-  UserMessageAttachments,
 } from "@/components/assistant-ui/attachment";
-import { MarkdownText } from "@/components/assistant-ui/markdown-text";
+import { CitationMarkdownText } from "@/components/assistant-ui/citation-markdown-text";
+import { RagSourceChips } from "@/components/assistant-ui/rag-source-chips";
 import {
   Reasoning,
   ReasoningContent,
@@ -52,7 +51,7 @@ import type { FC } from "react";
 export const Thread: FC = () => {
   return (
     <ThreadPrimitive.Root
-      className="aui-root aui-thread-root @container flex h-full flex-col bg-surface"
+      className="aui-root aui-thread-root @container flex h-full min-h-0 flex-col bg-surface"
       style={{
         ["--thread-max-width" as string]: "44rem",
         ["--composer-radius" as string]: "12px",
@@ -62,9 +61,9 @@ export const Thread: FC = () => {
       <ThreadPrimitive.Viewport
         turnAnchor="top"
         data-slot="aui_thread-viewport"
-        className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"
+        className="relative flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"
       >
-        <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4 md:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-0 w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4 md:px-6 lg:px-8">
           <AuiIf condition={(s) => s.thread.isEmpty}>
             <ThreadWelcome />
           </AuiIf>
@@ -236,7 +235,7 @@ const AssistantMessage: FC = () => {
     <MessagePrimitive.Root
       data-slot="aui_assistant-message-root"
       data-role="assistant"
-      className="fade-in slide-in-from-bottom-1 relative animate-in duration-150 [contain-intrinsic-size:auto_300px] [content-visibility:auto]"
+      className="fade-in slide-in-from-bottom-1 relative animate-in duration-150"
     >
       <div className="flex gap-3">
         <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -282,7 +281,7 @@ const AssistantMessage: FC = () => {
                       </ToolGroupRoot>
                     );
                   case "text":
-                    return <MarkdownText />;
+                    return <CitationMarkdownText />;
                   case "reasoning":
                     return <Reasoning {...part} />;
                   case "tool-call":
@@ -292,6 +291,7 @@ const AssistantMessage: FC = () => {
                 }
               }}
             </MessagePrimitive.GroupedParts>
+            <RagSourceChips />
             <MessageError />
           </div>
 
@@ -360,7 +360,7 @@ const UserMessage: FC = () => {
   return (
     <MessagePrimitive.Root
       data-slot="aui_user-message-root"
-      className="fade-in slide-in-from-bottom-1 flex animate-in justify-end duration-150 [contain-intrinsic-size:auto_60px] [content-visibility:auto]"
+      className="fade-in slide-in-from-bottom-1 flex animate-in justify-end duration-150"
       data-role="user"
     >
       <div className="flex gap-3">

@@ -1,0 +1,10 @@
+// Re-export from @assistant-ui/core/internal
+export { DefaultThreadComposerRuntimeCore, CompositeContextProvider, MessageRepository, BaseAssistantRuntimeCore, generateId, AssistantRuntimeImpl, ThreadRuntimeImpl, fromThreadMessageLike, getAutoStatus, } from "@assistant-ui/core/internal";
+// React-specific (stay in react)
+export { splitLocalRuntimeOptions } from "./legacy-runtime/runtime-cores/local/LocalRuntimeOptions.js";
+export { useToolInvocations, } from "@assistant-ui/core/react";
+export { useSmooth } from "./utils/smooth/useSmooth.js";
+export { useSmoothStatus, withSmoothContextProvider, } from "./utils/smooth/SmoothContext.js";
+// ComposerInput plugin registry (used by react-lexical)
+export { useComposerInputPluginRegistryOptional } from "./primitives/composer/ComposerInputPluginContext.js";
+//# sourceMappingURL=internal.js.map

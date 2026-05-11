@@ -1,6 +1,10 @@
 import { createDocument, updateDocumentStatus } from "@/lib/db";
+import { processDocument } from "@/lib/embeddings";
 import { createDocumentFilePath, uploadFile } from "@/lib/storage";
 import { createClient } from "@/lib/supabase-server";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024;
 const PDF_MIME_TYPES = new Set(["application/pdf", "application/x-pdf"]);
@@ -70,7 +74,15 @@ export async function POST(req: Request) {
         contentType: file.type || "application/pdf",
       });
 
+      console.log("File uploaded successfully:", filePath);
+
       await updateDocumentStatus(document.id, "processing");
+
+      console.log(" Start Processing document:", document.id);
+
+      await processDocument(document.id, filePath);
+
+      console.log("End Processing document:", document.id);
     } catch (uploadError) {
       try {
         await updateDocumentStatus(document.id, "failed", getErrorMessage(uploadError));
@@ -86,7 +98,7 @@ export async function POST(req: Request) {
       document: {
         id: document.id,
         name: document.file_name,
-        status: "processing",
+        status: "ready",
         filePath,
       },
     });

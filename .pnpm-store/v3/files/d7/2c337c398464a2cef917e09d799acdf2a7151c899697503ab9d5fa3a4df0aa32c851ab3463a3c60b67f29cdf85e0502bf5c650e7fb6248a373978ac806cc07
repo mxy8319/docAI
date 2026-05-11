@@ -1,0 +1,62 @@
+import { resource, tapEffectEvent, tapRef } from "@assistant-ui/tap";
+/** Owns composer text mutation + behavior dispatch on item selection. */
+export const TriggerSelectionResource = resource(({ behavior, trigger, aui, triggerChar, setCursorPosition, onSelected, }) => {
+    // Select-item override: lets Lexical's DirectivePlugin intercept selection
+    // and drive its own node insertion.
+    const selectItemOverrideRef = tapRef(null);
+    const registerSelectItemOverride = tapEffectEvent((fn) => {
+        selectItemOverrideRef.current = fn;
+        return () => {
+            if (selectItemOverrideRef.current === fn) {
+                selectItemOverrideRef.current = null;
+            }
+        };
+    });
+    const selectItem = tapEffectEvent((item) => {
+        if (!trigger || !behavior)
+            return;
+        if (selectItemOverrideRef.current?.(item)) {
+            onSelected();
+            return;
+        }
+        const currentText = aui.composer().getState().text;
+        const before = currentText.slice(0, trigger.offset);
+        const after = currentText.slice(trigger.offset + triggerChar.length + trigger.query.length);
+        const insertDirective = () => {
+            const directive = behavior.formatter.serialize(item);
+            aui
+                .composer()
+                .setText(before + directive + (after.startsWith(" ") ? after : ` ${after}`));
+        };
+        if (behavior.kind === "directive") {
+            insertDirective();
+            behavior.onInserted?.(item);
+        }
+        else {
+            if (behavior.removeOnExecute) {
+                aui
+                    .composer()
+                    .setText(before + (after.startsWith(" ") ? after.slice(1) : after));
+            }
+            else {
+                // Leave directive chip in the composer as an audit trail
+                insertDirective();
+            }
+            behavior.onExecute(item);
+        }
+        onSelected();
+    });
+    const close = tapEffectEvent(() => {
+        onSelected();
+        // Move cursor before the trigger so trigger detection deactivates
+        if (trigger) {
+            setCursorPosition(trigger.offset);
+        }
+    });
+    return {
+        selectItem,
+        close,
+        registerSelectItemOverride,
+    };
+});
+//# sourceMappingURL=triggerSelectionResource.js.map

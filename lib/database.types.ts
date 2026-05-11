@@ -80,6 +80,8 @@ export interface ChatSession {
   id: string;
   user_id: string;
   title: string | null;
+  /** Present when DB has been migrated with `lib/schema.sql` archived column. */
+  is_archived?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -209,6 +211,8 @@ export interface DocumentInsert {
 // 消息插入
 // =============================================
 export interface MessageInsert {
+  /** When set, row id matches AI SDK / assistant-ui message id for stable persistence. */
+  id?: string;
   session_id: string;
   role: MessageRole;
   content: string;

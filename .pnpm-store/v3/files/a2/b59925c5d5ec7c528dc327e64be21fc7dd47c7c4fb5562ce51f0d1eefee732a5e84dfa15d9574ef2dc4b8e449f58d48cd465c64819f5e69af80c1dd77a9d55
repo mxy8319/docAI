@@ -1,0 +1,3 @@
+import type { RemoteThreadListAdapter } from "../index.js";
+export declare function makeAdapter(overrides?: Partial<RemoteThreadListAdapter>): RemoteThreadListAdapter;
+//# sourceMappingURL=remote-thread-list-test-helpers.d.ts.map

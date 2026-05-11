@@ -1,0 +1,37 @@
+"use client";
+import { jsx as _jsx } from "react/jsx-runtime";
+import { Primitive } from "../../../utils/Primitive.js";
+import { forwardRef, useCallback, } from "react";
+import { composeEventHandlers } from "@radix-ui/primitive";
+import { useTriggerPopoverScopeContext } from "./TriggerPopover.js";
+/**
+ * Renders the top-level category list via a render function.
+ * Only renders when no category is active and search mode is off.
+ */
+export const ComposerPrimitiveTriggerPopoverCategories = forwardRef(({ children, "aria-label": ariaLabel, ...props }, forwardedRef) => {
+    const { categories, activeCategoryId, isSearchMode, open } = useTriggerPopoverScopeContext();
+    if (!open || activeCategoryId || isSearchMode)
+        return null;
+    return (_jsx(Primitive.div, { role: "group", "aria-label": ariaLabel ?? "Categories", ...props, ref: forwardedRef, children: children(categories) }));
+});
+ComposerPrimitiveTriggerPopoverCategories.displayName =
+    "ComposerPrimitive.TriggerPopoverCategories";
+/**
+ * A button that selects a category and triggers drill-down navigation.
+ * Automatically receives `data-highlighted` when keyboard-navigated.
+ */
+export const ComposerPrimitiveTriggerPopoverCategoryItem = forwardRef(({ categoryId, onClick, onMouseMove, ...props }, forwardedRef) => {
+    const { selectCategory, highlightIndex, categories, highlightedIndex, activeCategoryId, isSearchMode, popoverId, } = useTriggerPopoverScopeContext();
+    const handleClick = useCallback(() => {
+        selectCategory(categoryId);
+    }, [selectCategory, categoryId]);
+    const categoryIndex = categories.findIndex((c) => c.id === categoryId);
+    const isHighlighted = !activeCategoryId && !isSearchMode && categoryIndex === highlightedIndex;
+    const handleMouseMove = useCallback(() => {
+        highlightIndex(categoryIndex);
+    }, [highlightIndex, categoryIndex]);
+    return (_jsx(Primitive.button, { type: "button", role: "option", id: `${popoverId}-option-${categoryId}`, "aria-selected": isHighlighted, "data-highlighted": isHighlighted ? "" : undefined, ...props, ref: forwardedRef, onClick: composeEventHandlers(onClick, handleClick), onMouseMove: composeEventHandlers(onMouseMove, handleMouseMove) }));
+});
+ComposerPrimitiveTriggerPopoverCategoryItem.displayName =
+    "ComposerPrimitive.TriggerPopoverCategoryItem";
+//# sourceMappingURL=TriggerPopoverCategories.js.map

@@ -1,0 +1,61 @@
+import { jsx as _jsx } from "react/jsx-runtime";
+import { cloneElement, forwardRef, isValidElement, } from "react";
+import { Primitive as RadixPrimitive } from "@radix-ui/react-primitive";
+/**
+ * Thin wrapper around `@radix-ui/react-primitive` that adds `render` prop support.
+ *
+ * When `render` is provided, it is converted to the equivalent `asChild` pattern:
+ *   render={<Comp props />} + children  →  asChild + <Comp props>{children}</Comp>
+ *
+ * All prop merging, ref composition, and event handler chaining remain handled
+ * by Radix's battle-tested Slot implementation — we add zero custom logic for that.
+ */
+// Match @radix-ui/react-primitive's full element set
+const NODES = [
+    "a",
+    "button",
+    "div",
+    "form",
+    "h2",
+    "h3",
+    "img",
+    "input",
+    "label",
+    "li",
+    "nav",
+    "ol",
+    "p",
+    "select",
+    "span",
+    "svg",
+    "ul",
+];
+function withRenderProp(Component) {
+    const Wrapped = forwardRef(({ render, asChild, children, ...rest }, ref) => {
+        const Comp = Component;
+        if (render && isValidElement(render)) {
+            const renderChildren = children !== undefined
+                ? children
+                : render.props.children;
+            return (_jsx(Comp, { ...rest, asChild: true, ref: ref, children: cloneElement(render, undefined, renderChildren) }));
+        }
+        return (_jsx(Comp, { ...rest, asChild: asChild, ref: ref, children: children }));
+    });
+    const componentName = typeof Component === "string"
+        ? Component
+        : (Component.displayName ?? Component.name ?? "Component");
+    Wrapped.displayName = componentName;
+    return Wrapped;
+}
+function createPrimitive(node) {
+    const RadixComp = RadixPrimitive[node];
+    const Component = withRenderProp(RadixComp);
+    Component.displayName = `Primitive.${node}`;
+    return Component;
+}
+const Primitive = NODES.reduce((acc, node) => {
+    acc[node] = createPrimitive(node);
+    return acc;
+}, {});
+export { Primitive, withRenderProp };
+//# sourceMappingURL=Primitive.js.map

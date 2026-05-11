@@ -13,12 +13,12 @@
    - 记录 chunk 来源信息
 6. 使用 OpenAI Embedding 将每个 chunk 转成向量。
 7. 向量写入 PostgreSQL + pgvector。
-8. 用户提问时：
-   - 问题转 embedding
-   - 在 pgvector 中检索相似 chunks
-   - 将 chunks 和来源信息塞给 LLM
-   - LLM 生成答案和引用
-   - 引用校验后返回给前端
+8. 用户提问时（`/api/chat` + `lib/rag-chat.ts`）：
+   - 问题转 embedding（`embed` + `text-embedding-3-small`，与入库一致）
+   - 在 pgvector 中检索相似 chunks（`semanticSearch` → RPC `search_chunks`，按 `user_id` 隔离）
+   - 将 chunks 和来源信息写入 system prompt，再与历史消息一并交给 LLM（`streamText` + `OPENAI_CHAT_MODEL`）
+   - LLM 流式生成答案；角标 `[1]` 等形式引用片段编号
+   - `collectValidatedCitations` 在 `onFinish` 中校验角标是否落在检索结果范围内（超范围编号忽略；开发环境打日志）
 
 ## 2. 数据分层设计
 

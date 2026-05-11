@@ -1,0 +1,108 @@
+"use client";
+import { jsx as _jsx } from "react/jsx-runtime";
+import { useAui, useAuiState } from "@assistant-ui/store";
+import { useResource } from "@assistant-ui/tap/react";
+import { createContext, forwardRef, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, } from "react";
+import { Primitive } from "../../../utils/Primitive.js";
+import { useComposerInputPluginRegistryOptional } from "../ComposerInputPluginContext.js";
+import { TriggerPopoverResource, } from "./TriggerPopoverResource.js";
+import { useTriggerPopoverRootContext } from "./TriggerPopoverRootContext.js";
+const TriggerPopoverScopeContext = createContext(null);
+export const useTriggerPopoverScopeContext = () => {
+    const ctx = useContext(TriggerPopoverScopeContext);
+    if (!ctx)
+        throw new Error("useTriggerPopoverScopeContext must be used within ComposerPrimitive.TriggerPopover");
+    return ctx;
+};
+export const useTriggerPopoverScopeContextOptional = () => useContext(TriggerPopoverScopeContext);
+const TriggerBehaviorRegistrationContext = createContext(null);
+/** Obtain the registration handle from the parent `<TriggerPopover>`. */
+export const useTriggerBehaviorRegistration = () => {
+    const ctx = useContext(TriggerBehaviorRegistrationContext);
+    if (!ctx)
+        throw new Error("TriggerPopover.Directive / TriggerPopover.Action must be rendered inside ComposerPrimitive.TriggerPopover");
+    return ctx;
+};
+/**
+ * Declares a trigger and renders its popover container. The popover only
+ * renders its DOM (and children) when the trigger character is active in the
+ * composer input and a behavior sub-primitive has been registered.
+ *
+ * A behavior is contributed by rendering exactly one of
+ * `<TriggerPopover.Directive>` or `<TriggerPopover.Action>` as a child. Without
+ * a behavior the trigger stays closed.
+ *
+ * Must be placed inside `ComposerPrimitive.Unstable_TriggerPopoverRoot`.
+ *
+ * @example
+ * ```tsx
+ * <ComposerPrimitive.Unstable_TriggerPopover
+ *   char="@"
+ *   adapter={mentionAdapter}
+ * >
+ *   <ComposerPrimitive.Unstable_TriggerPopover.Directive formatter={formatter} />
+ *   <ComposerPrimitive.Unstable_TriggerPopoverCategories>
+ *     {(cats) => cats.map(...)}
+ *   </ComposerPrimitive.Unstable_TriggerPopoverCategories>
+ *   <ComposerPrimitive.Unstable_TriggerPopoverItems>
+ *     {(items) => items.map(...)}
+ *   </ComposerPrimitive.Unstable_TriggerPopoverItems>
+ * </ComposerPrimitive.Unstable_TriggerPopover>
+ * ```
+ */
+export const ComposerPrimitiveTriggerPopover = forwardRef(({ char, adapter, "aria-label": ariaLabel, children, ...props }, forwardedRef) => {
+    const aui = useAui();
+    const text = useAuiState((s) => s.composer.text);
+    const popoverId = useId();
+    // Track in state (for resource reactivity) + ref (dev warning on duplicate registrations).
+    const behaviorRef = useRef(null);
+    const [behavior, setBehavior] = useState(null);
+    const registrationCountRef = useRef(0);
+    const register = useCallback((next) => {
+        registrationCountRef.current += 1;
+        if (process.env.NODE_ENV !== "production" &&
+            registrationCountRef.current > 1) {
+            console.warn(`[assistant-ui] TriggerPopover "${char}" received more than one behavior child. Exactly one <TriggerPopover.Directive> or <TriggerPopover.Action> is allowed per TriggerPopover; the last registration wins.`);
+        }
+        behaviorRef.current = next;
+        setBehavior(next);
+        return () => {
+            registrationCountRef.current = Math.max(0, registrationCountRef.current - 1);
+            if (behaviorRef.current === next) {
+                behaviorRef.current = null;
+                setBehavior(null);
+            }
+        };
+    }, [char]);
+    const registration = useMemo(() => ({ register }), [register]);
+    const resource = useResource(TriggerPopoverResource({
+        adapter,
+        text,
+        triggerChar: char,
+        behavior: behavior ?? undefined,
+        aui,
+        popoverId,
+    }));
+    // Wrapper changes per render, but tap-stable methods inside don't.
+    const resourceRef = useRef(resource);
+    resourceRef.current = resource;
+    const root = useTriggerPopoverRootContext();
+    useEffect(() => {
+        return root.register({
+            char,
+            ...(behavior ? { behavior } : {}),
+            resource: resourceRef.current,
+        });
+    }, [root, char, behavior]);
+    const pluginRegistry = useComposerInputPluginRegistryOptional();
+    useEffect(() => {
+        if (!pluginRegistry)
+            return undefined;
+        return pluginRegistry.register(resourceRef.current);
+    }, [pluginRegistry]);
+    const open = behavior !== null && resource.open;
+    return (_jsx(TriggerBehaviorRegistrationContext.Provider, { value: registration, children: _jsx(TriggerPopoverScopeContext.Provider, { value: resource, children: open ? (_jsx(Primitive.div, { role: "listbox", id: popoverId, "aria-label": ariaLabel ?? "Suggestions", "aria-activedescendant": resource.highlightedItemId, "data-state": "open", ...props, ref: forwardedRef, children: children })) : (children) }) }));
+});
+ComposerPrimitiveTriggerPopover.displayName =
+    "ComposerPrimitive.TriggerPopover";
+//# sourceMappingURL=TriggerPopover.js.map

@@ -1,0 +1,12 @@
+"use client";
+import { jsx as _jsx } from "react/jsx-runtime";
+import { forwardRef } from "react";
+import { DropdownMenuRenderItem } from "../dropdownMenuRenderPrimitives.js";
+import { useDropdownMenuScope } from "./scope.js";
+export const ThreadListItemMorePrimitiveItem = forwardRef(({ __scopeThreadListItemMore, ...rest }, ref) => {
+    const scope = useDropdownMenuScope(__scopeThreadListItemMore);
+    return _jsx(DropdownMenuRenderItem, { ...scope, ...rest, ref: ref });
+});
+ThreadListItemMorePrimitiveItem.displayName =
+    "ThreadListItemMorePrimitive.Item";
+//# sourceMappingURL=ThreadListItemMoreItem.js.map

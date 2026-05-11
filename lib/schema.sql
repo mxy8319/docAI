@@ -144,11 +144,15 @@ create table if not exists public.chat_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   title text,
+  is_archived boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create index if not exists idx_sessions_user_id on public.chat_sessions(user_id, updated_at desc);
+
+alter table public.chat_sessions
+  add column if not exists is_archived boolean not null default false;
 
 -- =============================================
 -- Chat messages: answers and citations

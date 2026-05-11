@@ -1,0 +1,39 @@
+"use client";
+import { unstable_defaultDirectiveFormatter } from "@assistant-ui/core";
+import { useEffect, useRef } from "react";
+import { useTriggerBehaviorRegistration } from "./TriggerPopover.js";
+/**
+ * Configures a `<TriggerPopover>` to fire a handler when an item is selected,
+ * optionally leaving a directive chip behind as an audit trail. Render exactly
+ * one behavior sub-primitive per `<TriggerPopover>`.
+ *
+ * Exposed as `ComposerPrimitive.Unstable_TriggerPopover.Action`.
+ *
+ * @example
+ * ```tsx
+ * <ComposerPrimitive.Unstable_TriggerPopover char="/" adapter={slashAdapter}>
+ *   <ComposerPrimitive.Unstable_TriggerPopover.Action
+ *     onExecute={(item) => commandHandlers[item.id]?.()}
+ *     removeOnExecute={false}
+ *   />
+ * </ComposerPrimitive.Unstable_TriggerPopover>
+ * ```
+ */
+export const ComposerPrimitiveTriggerPopoverAction = ({ formatter, onExecute, removeOnExecute }) => {
+    const { register } = useTriggerBehaviorRegistration();
+    const onExecuteRef = useRef(onExecute);
+    onExecuteRef.current = onExecute;
+    useEffect(() => {
+        const behavior = {
+            kind: "action",
+            formatter: formatter ?? unstable_defaultDirectiveFormatter,
+            onExecute: (item) => onExecuteRef.current(item),
+            ...(removeOnExecute !== undefined ? { removeOnExecute } : {}),
+        };
+        return register(behavior);
+    }, [register, formatter, removeOnExecute]);
+    return null;
+};
+ComposerPrimitiveTriggerPopoverAction.displayName =
+    "ComposerPrimitive.TriggerPopoverAction";
+//# sourceMappingURL=TriggerPopoverAction.js.map

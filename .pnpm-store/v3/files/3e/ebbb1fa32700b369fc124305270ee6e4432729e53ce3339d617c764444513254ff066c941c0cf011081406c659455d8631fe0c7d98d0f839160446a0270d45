@@ -1,0 +1,60 @@
+import { type FC, type ReactNode } from "react";
+import type { TriggerPopoverResourceOutput } from "./TriggerPopoverResource.js";
+import type { TriggerBehavior } from "./triggerSelectionResource.js";
+export type RegisteredTrigger = {
+    readonly char: string;
+    /** Behavior contributed by a child `TriggerPopover.Directive` / `.Action`. */
+    readonly behavior?: TriggerBehavior;
+    readonly resource: TriggerPopoverResourceOutput;
+};
+export type TriggerPopoverLifecycleListener = {
+    added(trigger: RegisteredTrigger): void;
+    removed(char: string): void;
+};
+export type TriggerPopoverRootContextValue = {
+    register(trigger: RegisteredTrigger): () => void;
+    getTriggers(): ReadonlyMap<string, RegisteredTrigger>;
+    subscribe(listener: () => void): () => void;
+    /** Subscribe to per-trigger add/remove events. */
+    subscribeLifecycle(listener: TriggerPopoverLifecycleListener): () => void;
+};
+export declare const useTriggerPopoverRootContext: () => TriggerPopoverRootContextValue;
+export declare const useTriggerPopoverRootContextOptional: () => TriggerPopoverRootContextValue | null;
+/**
+ * Live map of registered triggers, re-rendering on change. Prefer
+ * `subscribeLifecycle` for incremental add/remove handling.
+ */
+export declare const useTriggerPopoverTriggers: () => ReadonlyMap<string, RegisteredTrigger>;
+/** Like `useTriggerPopoverTriggers` but returns an empty map outside a root. */
+export declare const useTriggerPopoverTriggersOptional: () => ReadonlyMap<string, RegisteredTrigger>;
+export declare namespace ComposerPrimitiveTriggerPopoverRoot {
+    type Props = {
+        children: ReactNode;
+    };
+}
+/**
+ * Provider that groups one or more `TriggerPopover` declarations. Each trigger
+ * is identified by its `char` (unique within the root). Behavior is contributed
+ * by a child `TriggerPopover.Directive` or `TriggerPopover.Action`.
+ *
+ * @example
+ * ```tsx
+ * <ComposerPrimitive.Unstable_TriggerPopoverRoot>
+ *   <ComposerPrimitive.Unstable_TriggerPopover char="@" adapter={mentionAdapter}>
+ *     <ComposerPrimitive.Unstable_TriggerPopover.Directive formatter={formatter} />
+ *     ...
+ *   </ComposerPrimitive.Unstable_TriggerPopover>
+ *
+ *   <ComposerPrimitive.Unstable_TriggerPopover char="/" adapter={slashAdapter}>
+ *     <ComposerPrimitive.Unstable_TriggerPopover.Action onExecute={handler} />
+ *     ...
+ *   </ComposerPrimitive.Unstable_TriggerPopover>
+ *
+ *   <ComposerPrimitive.Root>
+ *     <ComposerPrimitive.Input />
+ *   </ComposerPrimitive.Root>
+ * </ComposerPrimitive.Unstable_TriggerPopoverRoot>
+ * ```
+ */
+export declare const ComposerPrimitiveTriggerPopoverRoot: FC<ComposerPrimitiveTriggerPopoverRoot.Props>;
+//# sourceMappingURL=TriggerPopoverRootContext.d.ts.map

@@ -100,6 +100,32 @@ export async function getDocument(documentId: string): Promise<Document | null> 
 }
 
 /**
+ * 读取向量块全文（校验块所属文档属于该用户）
+ */
+export async function getDocumentChunkByIdForUser(
+  chunkId: string,
+  userId: string,
+): Promise<{ content: string; page_number: number | null; file_name: string; document_id: string } | null> {
+  const { data: chunk, error } = await supabaseAdmin
+    .from("document_chunks")
+    .select("id, content, page_number, document_id")
+    .eq("id", chunkId)
+    .maybeSingle();
+
+  if (error || !chunk) return null;
+
+  const doc = await getDocument(chunk.document_id as string);
+  if (!doc || doc.user_id !== userId) return null;
+
+  return {
+    content: chunk.content as string,
+    page_number: chunk.page_number as number | null,
+    file_name: doc.file_name,
+    document_id: doc.id,
+  };
+}
+
+/**
  * 获取用户文档列表（分页）
  */
 export async function getDocumentsPaginated(
@@ -167,6 +193,36 @@ export async function updateDocumentStatus(
 }
 
 /**
+ * 更新文档处理进度
+ */
+export async function updateDocumentProcessingState(
+  documentId: string,
+  updates: Partial<{
+    status: DocumentStatus;
+    current_step: string | null;
+    progress: number;
+    page_count: number;
+    chunk_count: number;
+    error_message: string | null;
+    checksum_sha256: string;
+    source_title: string;
+    source_author: string;
+    parser_name: string;
+    parser_version: string;
+    chunk_strategy: string;
+    embedding_model: string;
+    embedding_dimensions: number;
+    metadata: Record<string, any>;
+  }>
+): Promise<void> {
+  const { error } = await supabaseAdmin.from("documents").update(updates).eq("id", documentId);
+
+  if (error) {
+    throw new Error(`更新文档处理状态失败: ${error.message}`);
+  }
+}
+
+/**
  * 更新文档元信息
  */
 export async function updateDocument(
@@ -176,7 +232,18 @@ export async function updateDocument(
     source_title: string;
     source_author: string;
     source_published_date: string;
+    status: DocumentStatus;
+    current_step: string | null;
+    progress: number;
     page_count: number;
+    chunk_count: number;
+    error_message: string | null;
+    checksum_sha256: string;
+    parser_name: string;
+    parser_version: string;
+    chunk_strategy: string;
+    embedding_model: string;
+    embedding_dimensions: number;
     metadata: Record<string, any>;
   }>
 ): Promise<void> {
@@ -476,6 +543,36 @@ export async function updateSessionTitle(sessionId: string, title: string): Prom
   }
 }
 
+export async function setSessionArchived(sessionId: string, archived: boolean): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("chat_sessions")
+    .update({ is_archived: archived, updated_at: new Date().toISOString() })
+    .eq("id", sessionId);
+
+  if (error) {
+    throw new Error(`更新会话归档状态失败: ${error.message}`);
+  }
+}
+
+export async function updateChatMessage(
+  sessionId: string,
+  messageId: string,
+  patch: { content?: string; metadata?: Record<string, unknown> },
+): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("chat_messages")
+    .update({
+      ...(patch.content !== undefined ? { content: patch.content } : {}),
+      ...(patch.metadata !== undefined ? { metadata: patch.metadata } : {}),
+    })
+    .eq("id", messageId)
+    .eq("session_id", sessionId);
+
+  if (error) {
+    throw new Error(`更新消息失败: ${error.message}`);
+  }
+}
+
 /**
  * 删除会话（会级联删除消息）
  */
@@ -509,17 +606,18 @@ export async function touchSession(sessionId: string): Promise<void> {
  * 保存消息
  */
 export async function saveMessage(data: MessageInsert): Promise<ChatMessage> {
-  const { data: msg, error } = await supabaseAdmin
-    .from("chat_messages")
-    .insert({
-      session_id: data.session_id,
-      role: data.role,
-      content: data.content,
-      citations: data.citations || [],
-      metadata: data.metadata || {},
-    })
-    .select()
-    .single();
+  const row: Record<string, unknown> = {
+    session_id: data.session_id,
+    role: data.role,
+    content: data.content,
+    citations: data.citations || [],
+    metadata: data.metadata || {},
+  };
+  if (data.id) {
+    row.id = data.id;
+  }
+
+  const { data: msg, error } = await supabaseAdmin.from("chat_messages").insert(row).select().single();
 
   if (error) {
     throw new Error(`保存消息失败: ${error.message}`);

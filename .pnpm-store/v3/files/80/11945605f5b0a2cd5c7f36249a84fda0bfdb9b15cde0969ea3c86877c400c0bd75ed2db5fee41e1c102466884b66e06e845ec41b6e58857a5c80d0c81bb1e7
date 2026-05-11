@@ -1,0 +1,37 @@
+"use client";
+import { unstable_defaultDirectiveFormatter } from "@assistant-ui/core";
+import { useEffect, useRef } from "react";
+import { useTriggerBehaviorRegistration } from "./TriggerPopover.js";
+/**
+ * Configures a `<TriggerPopover>` to insert a directive chip when an item is
+ * selected. Render exactly one behavior sub-primitive per `<TriggerPopover>`.
+ *
+ * Exposed as `ComposerPrimitive.Unstable_TriggerPopover.Directive`.
+ *
+ * @example
+ * ```tsx
+ * <ComposerPrimitive.Unstable_TriggerPopover char="@" adapter={mentionAdapter}>
+ *   <ComposerPrimitive.Unstable_TriggerPopover.Directive
+ *     formatter={unstable_defaultDirectiveFormatter}
+ *     onInserted={(item) => track("mention", item.id)}
+ *   />
+ * </ComposerPrimitive.Unstable_TriggerPopover>
+ * ```
+ */
+export const ComposerPrimitiveTriggerPopoverDirective = ({ formatter, onInserted }) => {
+    const { register } = useTriggerBehaviorRegistration();
+    const onInsertedRef = useRef(onInserted);
+    onInsertedRef.current = onInserted;
+    useEffect(() => {
+        const behavior = {
+            kind: "directive",
+            formatter: formatter ?? unstable_defaultDirectiveFormatter,
+            onInserted: (item) => onInsertedRef.current?.(item),
+        };
+        return register(behavior);
+    }, [register, formatter]);
+    return null;
+};
+ComposerPrimitiveTriggerPopoverDirective.displayName =
+    "ComposerPrimitive.TriggerPopoverDirective";
+//# sourceMappingURL=TriggerPopoverDirective.js.map

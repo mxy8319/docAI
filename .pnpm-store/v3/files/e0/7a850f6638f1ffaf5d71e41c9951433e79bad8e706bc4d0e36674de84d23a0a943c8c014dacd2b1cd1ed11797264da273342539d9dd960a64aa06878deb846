@@ -1,0 +1,59 @@
+import { Primitive } from "../../utils/Primitive.js";
+import { type ComponentRef, type ComponentPropsWithoutRef } from "react";
+export declare namespace MessagePrimitiveRoot {
+    type Element = ComponentRef<typeof Primitive.div>;
+    /**
+     * Props for the MessagePrimitive.Root component.
+     * Accepts all standard div element props plus optional viewport slack tuning.
+     */
+    type Props = ComponentPropsWithoutRef<typeof Primitive.div> & {
+        /**
+         * Threshold at which the user message height clamps to the offset.
+         * @default "10em"
+         */
+        fillClampThreshold?: string | undefined;
+        /**
+         * Offset used when clamping large user messages.
+         * @default "6em"
+         */
+        fillClampOffset?: string | undefined;
+    };
+}
+/**
+ * The root container component for a message.
+ *
+ * This component provides the foundational wrapper for message content and handles
+ * hover state management for the message. It automatically tracks when the user
+ * is hovering over the message, which can be used by child components like action bars.
+ *
+ * When `turnAnchor="top"` is set on the viewport, this component
+ * registers itself as the scroll anchor if it's the last user message.
+ *
+ * @example
+ * ```tsx
+ * <MessagePrimitive.Root>
+ *   <MessagePrimitive.Content />
+ *   <ActionBarPrimitive.Root>
+ *     <ActionBarPrimitive.Copy />
+ *     <ActionBarPrimitive.Edit />
+ *   </ActionBarPrimitive.Root>
+ * </MessagePrimitive.Root>
+ * ```
+ */
+export declare const MessagePrimitiveRoot: import("react").ForwardRefExoticComponent<Omit<Omit<import("react").ClassAttributes<HTMLDivElement> & import("react").HTMLAttributes<HTMLDivElement> & {
+    asChild?: boolean;
+}, "ref"> & {
+    render?: import("react").ReactElement | undefined;
+} & import("react").RefAttributes<HTMLDivElement>, "ref"> & {
+    /**
+     * Threshold at which the user message height clamps to the offset.
+     * @default "10em"
+     */
+    fillClampThreshold?: string | undefined;
+    /**
+     * Offset used when clamping large user messages.
+     * @default "6em"
+     */
+    fillClampOffset?: string | undefined;
+} & import("react").RefAttributes<HTMLDivElement>>;
+//# sourceMappingURL=MessageRoot.d.ts.map

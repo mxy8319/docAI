@@ -1,22 +1,60 @@
-interface DocPreviewProps {
-  document?: string;
-  page?: number;
-  text?: string;
-}
+"use client";
 
-export default function DocPreview({ document, page, text }: DocPreviewProps) {
-  return (
-    <div className="bg-surface-container-low rounded-lg p-3 text-on-secondary-container text-body-md cursor-pointer hover:bg-surface-container transition-colors">
-      <div className="flex items-center gap-2 text-label-md mb-1">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <span>{document}</span>
-        <span className="text-on-surface-variant">· 第 {page} 页</span>
+import { useCitationPreview } from "./CitationPreviewContext";
+
+export default function DocPreview() {
+  const { state, clear } = useCitationPreview();
+
+  if (state.status === "idle") {
+    return (
+      <div className="flex h-full min-h-0 flex-col p-4">
+        <h2 className="text-label-md font-medium text-on-surface-variant">出处预览</h2>
+        <p className="mt-3 text-body-sm text-on-surface-variant leading-relaxed">
+          点击回答中的角标 <span className="font-mono text-on-surface">[1]</span>、
+          <span className="font-mono text-on-surface">[2]</span>
+          ，或消息下方的「参考片段」按钮，即可在此查看对应原文。
+        </p>
       </div>
-      <p className="text-body-md text-on-surface-variant opacity-80">
-        {text}
-      </p>
+    );
+  }
+
+  const { citation } = state;
+  const body =
+    state.status === "ready" && state.fullContent != null && state.fullContent.length > 0
+      ? state.fullContent
+      : citation.content_snippet;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-3 p-4">
+      <div className="flex shrink-0 items-start justify-between gap-2">
+        <h2 className="text-label-md font-medium text-on-surface-variant">出处预览</h2>
+        <button
+          type="button"
+          onClick={clear}
+          className="text-label-sm text-primary hover:underline"
+        >
+          关闭
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-outline/20 bg-surface-container-low p-4">
+        <div className="flex flex-wrap items-center gap-2 text-label-sm text-on-surface">
+          <span className="truncate font-medium" title={citation.file_name}>
+            {citation.file_name}
+          </span>
+          <span className="text-on-surface-variant">
+            {citation.page_number != null ? `· 第 ${citation.page_number} 页` : ""}
+          </span>
+        </div>
+        {state.status === "loading" && (
+          <p className="mt-2 text-label-sm text-on-surface-variant">正在加载原文…</p>
+        )}
+        <pre className="mt-3 whitespace-pre-wrap break-words text-body-sm text-on-surface leading-relaxed">
+          {body}
+        </pre>
+        {state.status === "ready" && !state.fullContent && (
+          <p className="mt-2 text-label-sm text-on-surface-variant">未能加载全文，已显示检索片段。</p>
+        )}
+      </div>
     </div>
   );
 }

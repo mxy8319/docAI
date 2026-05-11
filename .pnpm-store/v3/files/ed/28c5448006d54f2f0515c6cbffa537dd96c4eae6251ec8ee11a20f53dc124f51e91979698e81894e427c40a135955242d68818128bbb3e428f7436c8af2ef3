@@ -1,0 +1,94 @@
+import { resource, tapEffect, tapEffectEvent, tapMemo, tapState, } from "@assistant-ui/tap";
+function matchesQuery(item, lower) {
+    return (item.id.toLowerCase().includes(lower) ||
+        item.label.toLowerCase().includes(lower) ||
+        (item.description?.toLowerCase().includes(lower) ?? false));
+}
+/**
+ * Computes categories, items, search results, and navigation state from the
+ * adapter + current query. Pure derivation — no side effects on the composer.
+ */
+export const TriggerNavigationResource = resource(({ adapter, query, open, }) => {
+    const [activeCategoryId, setActiveCategoryId] = tapState(null);
+    tapEffect(() => {
+        if (!open)
+            setActiveCategoryId(null);
+    }, [open]);
+    const categories = tapMemo(() => {
+        if (!open || !adapter)
+            return [];
+        return adapter.categories();
+    }, [open, adapter]);
+    const effectiveActiveCategoryId = open ? activeCategoryId : null;
+    const allItems = tapMemo(() => {
+        if (!effectiveActiveCategoryId || !adapter)
+            return [];
+        return adapter.categoryItems(effectiveActiveCategoryId);
+    }, [effectiveActiveCategoryId, adapter]);
+    const searchResults = tapMemo(() => {
+        if (!open || !adapter || effectiveActiveCategoryId)
+            return null;
+        // If categories exist and query is empty, show categories first (not search)
+        if (!query && categories.length > 0)
+            return null;
+        if (adapter.search)
+            return adapter.search(query);
+        // fallback: no adapter.search
+        const all = [];
+        const lower = query.toLowerCase();
+        for (const cat of categories) {
+            for (const item of adapter.categoryItems(cat.id)) {
+                if (matchesQuery(item, lower)) {
+                    all.push(item);
+                }
+            }
+        }
+        return all;
+    }, [open, adapter, query, effectiveActiveCategoryId, categories]);
+    const isSearchMode = searchResults !== null;
+    const filteredCategories = tapMemo(() => {
+        if (isSearchMode)
+            return [];
+        if (!query)
+            return categories;
+        const lower = query.toLowerCase();
+        return categories.filter((cat) => cat.label.toLowerCase().includes(lower));
+    }, [categories, query, isSearchMode]);
+    const filteredItems = tapMemo(() => {
+        if (isSearchMode)
+            return searchResults ?? [];
+        if (!query)
+            return allItems;
+        const lower = query.toLowerCase();
+        return allItems.filter((item) => matchesQuery(item, lower));
+    }, [allItems, query, isSearchMode, searchResults]);
+    const navigableList = tapMemo(() => {
+        if (isSearchMode)
+            return searchResults ?? [];
+        if (effectiveActiveCategoryId)
+            return filteredItems;
+        return filteredCategories;
+    }, [
+        isSearchMode,
+        searchResults,
+        effectiveActiveCategoryId,
+        filteredItems,
+        filteredCategories,
+    ]);
+    const selectCategory = tapEffectEvent((categoryId) => {
+        setActiveCategoryId(categoryId);
+    });
+    const goBack = tapEffectEvent(() => {
+        setActiveCategoryId(null);
+    });
+    return {
+        categories: filteredCategories,
+        items: filteredItems,
+        isSearchMode,
+        activeCategoryId: effectiveActiveCategoryId,
+        navigableList,
+        selectCategory,
+        goBack,
+    };
+});
+//# sourceMappingURL=triggerNavigationResource.js.map
