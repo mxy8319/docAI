@@ -1,12 +1,12 @@
-import type { Link, PhrasingContent, Root, Text } from "mdast";
-import { visit } from "unist-util-visit";
+import type { Link, PhrasingContent, Root, Text } from "mdast"
+import { visit } from "unist-util-visit"
 
 /** ASCII [n]、中文【n】、全角方括号［n］ */
-const CITE_RE = /(?:\[(\d+)\]|【(\d+)】|［(\d+)］)/g;
+const CITE_RE = /(?:\[(\d+)\]|【(\d+)】|［(\d+)］)/g
 
 function citeMatchGroups(m: RegExpExecArray): { n: string; raw: string } {
-  const n = m[1] ?? m[2] ?? m[3]!;
-  return { n, raw: m[0] };
+  const n = m[1] ?? m[2] ?? m[3]!
+  return { n, raw: m[0] }
 }
 
 /**
@@ -15,35 +15,35 @@ function citeMatchGroups(m: RegExpExecArray): { n: string; raw: string } {
 export function remarkCitationRefLinks() {
   return (tree: Root) => {
     visit(tree, "text", (node: Text, index: number | undefined, parent) => {
-      if (parent == null || index === undefined) return;
-      if (parent.type === "link") return;
+      if (parent == null || index === undefined) return
+      if (parent.type === "link") return
 
-      const value = node.value;
-      if (!CITE_RE.test(value)) return;
-      CITE_RE.lastIndex = 0;
+      const value = node.value
+      if (!CITE_RE.test(value)) return
+      CITE_RE.lastIndex = 0
 
-      const segments: PhrasingContent[] = [];
-      let last = 0;
-      let m: RegExpExecArray | null;
+      const segments: PhrasingContent[] = []
+      let last = 0
+      let m: RegExpExecArray | null
       while ((m = CITE_RE.exec(value)) !== null) {
-        const before = value.slice(last, m.index);
-        if (before) segments.push({ type: "text", value: before } satisfies Text);
-        const { n, raw } = citeMatchGroups(m);
+        const before = value.slice(last, m.index)
+        if (before) segments.push({ type: "text", value: before } satisfies Text)
+        const { n, raw } = citeMatchGroups(m)
         const link: Link = {
           type: "link",
           url: `#cite-${n}`,
           children: [{ type: "text", value: raw }],
-        };
-        segments.push(link);
-        last = m.index + m[0].length;
+        }
+        segments.push(link)
+        last = m.index + m[0].length
       }
-      const rest = value.slice(last);
-      if (rest) segments.push({ type: "text", value: rest } satisfies Text);
+      const rest = value.slice(last)
+      if (rest) segments.push({ type: "text", value: rest } satisfies Text)
 
-      if (segments.length === 1 && segments[0]!.type === "text") return;
+      if (segments.length === 1 && segments[0]!.type === "text") return
 
-      parent.children.splice(index, 1, ...segments);
-      return index + segments.length;
-    });
-  };
+      parent.children.splice(index, 1, ...segments)
+      return index + segments.length
+    })
+  }
 }

@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { LoginError } from "./LoginError";
-import { signInWithGithub } from "./actions";
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { LoginError } from "./LoginError"
+import { signInWithGithub } from "./actions"
 
 export default function LoginPage() {
   return (
@@ -88,5 +88,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

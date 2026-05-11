@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { Upload } from "./Upload";
-import { ThreadList } from "@/components/assistant-ui/thread-list";
+import { Upload } from "./Upload"
+import { ThreadList } from "@/components/assistant-ui/thread-list"
 
 export function Sidebar() {
   return (
@@ -13,5 +13,5 @@ export function Sidebar() {
         <ThreadList />
       </div>
     </aside>
-  );
+  )
 }

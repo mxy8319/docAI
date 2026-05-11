@@ -27,9 +27,11 @@
 用途：用户身份、登录态、权限根。
 
 数据来源：
+
 - Supabase `auth.users`
 
 核心原则：
+
 - 业务表中的 `user_id` 统一引用 `auth.users.id`
 - RLS 使用 `auth.uid() = user_id`
 - 不再单独维护 Auth.js 用户 ID
@@ -39,6 +41,7 @@
 用途：保存文档本体，不保存向量，不保存结构化业务数据。
 
 Bucket：
+
 - `documents`
 - private bucket
 - 单文件限制：1MB
@@ -57,9 +60,11 @@ documents/2b7...9e/8f1...aa-annual-report.pdf
 ```
 
 Storage 只负责：
+
 - 原始 PDF 文件
 
 不建议放：
+
 - chunk 文本
 - embedding
 - 用户权限数据
@@ -70,12 +75,14 @@ Storage 只负责：
 用途：结构化数据、权限、状态、来源、对话、引用。
 
 MVP 表：
+
 - `documents`
 - `document_chunks`
 - `chat_sessions`
 - `chat_messages`
 
 PostgreSQL 负责：
+
 - 用户文档列表
 - 文档处理状态
 - 文档元数据
@@ -90,11 +97,13 @@ PostgreSQL 负责：
 用途：向量检索。
 
 实现方式：
+
 - pgvector 扩展装在 Supabase PostgreSQL 中
 - `document_chunks.embedding vector(1536)`
 - 当前默认对应 `text-embedding-3-small`
 
 注意：
+
 - 如果改用 `text-embedding-3-large` 且使用 3072 维，需要同步修改 schema 中的 `vector(1536)`。
 - MVP 建议先用 `text-embedding-3-small`，成本低，速度快，够做文档问答。
 
@@ -105,6 +114,7 @@ PostgreSQL 负责：
 文档级元数据，一条记录对应一个上传文档。
 
 核心字段：
+
 - `id`: 文档 ID
 - `user_id`: 所属用户，引用 `auth.users.id`
 - `file_name`: 原始文件名
@@ -140,6 +150,7 @@ PostgreSQL 负责：
 chunk 级数据，一条记录对应一个可检索文本块。
 
 核心字段：
+
 - `id`: chunk ID
 - `document_id`: 所属文档
 - `content`: chunk 文本
@@ -175,6 +186,7 @@ chunk 级数据，一条记录对应一个可检索文本块。
 ```
 
 MVP 最少需要：
+
 - `document_id`
 - `content`
 - `chunk_index`
@@ -182,6 +194,7 @@ MVP 最少需要：
 - `embedding`
 
 引用溯源需要：
+
 - `page_number`
 - `paragraph_index`
 - `char_start`
@@ -193,6 +206,7 @@ MVP 最少需要：
 一次对话会话。
 
 核心字段：
+
 - `id`
 - `user_id`
 - `title`
@@ -204,6 +218,7 @@ MVP 最少需要：
 对话消息和引用。
 
 核心字段：
+
 - `id`
 - `session_id`
 - `role`: `user` / `assistant` / `system`
@@ -235,6 +250,7 @@ MVP 最少需要：
 ### PostgreSQL RLS
 
 MVP 原则：
+
 - 用户只能访问自己的 `documents`
 - 用户只能访问自己文档下的 `document_chunks`
 - 用户只能访问自己的 `chat_sessions`
@@ -269,16 +285,19 @@ auth.uid()::text = (storage.foldername(name))[1]
 ### 语义检索
 
 输入：
+
 - 用户问题 embedding
 - `user_id`
 - `topK`
 - `threshold`
 
 过程：
+
 - 在 `document_chunks.embedding` 上做 cosine similarity
 - 只检索当前用户的文档 chunk
 
 返回：
+
 - chunk 文本
 - 文档信息
 - 页码
@@ -288,15 +307,18 @@ auth.uid()::text = (storage.foldername(name))[1]
 ### 关键词检索
 
 用途：
+
 - 补足向量检索对专有名词、数字、代码、合同条款编号的不足
 
 实现：
+
 - `pg_trgm`
 - `keyword_search`
 
 ### 混合检索
 
 用途：
+
 - MVP 后期增强答案质量
 
 公式：
@@ -306,6 +328,7 @@ combined_score = vector_weight * vector_score + keyword_weight * keyword_score
 ```
 
 默认：
+
 - `vector_weight = 0.7`
 - `keyword_weight = 0.3`
 
@@ -320,6 +343,7 @@ processing -> failed
 ```
 
 含义：
+
 - `uploading`: 正在上传或刚创建记录
 - `processing`: 文件已进 Storage，等待解析/向量化
 - `ready`: chunks 和 embeddings 已写入，可问答
@@ -328,6 +352,7 @@ processing -> failed
 MVP 可以先同步处理小文件。
 
 大文档后续需要：
+
 - 异步任务队列
 - worker 分批解析
 - 批量 embedding
@@ -337,12 +362,14 @@ MVP 可以先同步处理小文件。
 ## 7. 大文档后续设计
 
 问题：
+
 - 1000 页以上 PDF 内存压力大
 - 解析耗时长
 - embedding 调用需要分批
 - API Route 可能超时
 
 后续扩展：
+
 - `document_processing_jobs`
 - `document_pages`
 - page-level text cache

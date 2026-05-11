@@ -4,7 +4,7 @@
  * ⚠️ 此文件只能用于 Server Component / API Route / Server Action
  */
 
-import { supabaseAdmin } from "./supabase-admin";
+import { supabaseAdmin } from "./supabase-admin"
 import type {
   Document,
   DocumentChunk,
@@ -17,7 +17,7 @@ import type {
   MessageInsert,
   Citation,
   DocumentStatus,
-} from "./database.types";
+} from "./database.types"
 
 // =============================================
 // 文档操作
@@ -55,13 +55,13 @@ export async function createDocument(data: DocumentInsert): Promise<Document> {
       metadata: data.metadata || {},
     })
     .select()
-    .single();
+    .single()
 
   if (error) {
-    throw new Error(`创建文档记录失败: ${error.message}`);
+    throw new Error(`创建文档记录失败: ${error.message}`)
   }
 
-  return doc as Document;
+  return doc as Document
 }
 
 /**
@@ -72,13 +72,13 @@ export async function getDocuments(userId: string): Promise<Document[]> {
     .from("documents")
     .select("*")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
 
   if (error) {
-    throw new Error(`查询文档列表失败: ${error.message}`);
+    throw new Error(`查询文档列表失败: ${error.message}`)
   }
 
-  return (data || []) as Document[];
+  return (data || []) as Document[]
 }
 
 /**
@@ -89,14 +89,14 @@ export async function getDocument(documentId: string): Promise<Document | null> 
     .from("documents")
     .select("*")
     .eq("id", documentId)
-    .single();
+    .single()
 
   if (error) {
-    if (error.code === "PGRST116") return null;
-    throw new Error(`查询文档失败: ${error.message}`);
+    if (error.code === "PGRST116") return null
+    throw new Error(`查询文档失败: ${error.message}`)
   }
 
-  return data as Document;
+  return data as Document
 }
 
 /**
@@ -104,25 +104,30 @@ export async function getDocument(documentId: string): Promise<Document | null> 
  */
 export async function getDocumentChunkByIdForUser(
   chunkId: string,
-  userId: string,
-): Promise<{ content: string; page_number: number | null; file_name: string; document_id: string } | null> {
+  userId: string
+): Promise<{
+  content: string
+  page_number: number | null
+  file_name: string
+  document_id: string
+} | null> {
   const { data: chunk, error } = await supabaseAdmin
     .from("document_chunks")
     .select("id, content, page_number, document_id")
     .eq("id", chunkId)
-    .maybeSingle();
+    .maybeSingle()
 
-  if (error || !chunk) return null;
+  if (error || !chunk) return null
 
-  const doc = await getDocument(chunk.document_id as string);
-  if (!doc || doc.user_id !== userId) return null;
+  const doc = await getDocument(chunk.document_id as string)
+  if (!doc || doc.user_id !== userId) return null
 
   return {
     content: chunk.content as string,
     page_number: chunk.page_number as number | null,
     file_name: doc.file_name,
     document_id: doc.id,
-  };
+  }
 }
 
 /**
@@ -131,36 +136,36 @@ export async function getDocumentChunkByIdForUser(
 export async function getDocumentsPaginated(
   userId: string,
   options: {
-    page?: number;
-    pageSize?: number;
-    status?: DocumentStatus;
+    page?: number
+    pageSize?: number
+    status?: DocumentStatus
   } = {}
 ): Promise<{
-  documents: Document[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  documents: Document[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
 }> {
-  const { page = 1, pageSize = 10, status } = options;
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  const { page = 1, pageSize = 10, status } = options
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
 
-  let query = supabaseAdmin.from("documents").select("*", { count: "exact" }).eq("user_id", userId);
+  let query = supabaseAdmin.from("documents").select("*", { count: "exact" }).eq("user_id", userId)
 
   if (status) {
-    query = query.eq("status", status);
+    query = query.eq("status", status)
   }
 
   const { data, error, count } = await query
     .order("created_at", { ascending: false })
-    .range(from, to);
+    .range(from, to)
 
   if (error) {
-    throw new Error(`查询文档列表失败: ${error.message}`);
+    throw new Error(`查询文档列表失败: ${error.message}`)
   }
 
-  const total = count || 0;
+  const total = count || 0
 
   return {
     documents: (data || []) as Document[],
@@ -168,7 +173,7 @@ export async function getDocumentsPaginated(
     page,
     pageSize,
     totalPages: Math.ceil(total / pageSize),
-  };
+  }
 }
 
 /**
@@ -185,10 +190,10 @@ export async function updateDocumentStatus(
       status,
       error_message: errorMessage,
     })
-    .eq("id", documentId);
+    .eq("id", documentId)
 
   if (error) {
-    throw new Error(`更新文档状态失败: ${error.message}`);
+    throw new Error(`更新文档状态失败: ${error.message}`)
   }
 }
 
@@ -198,27 +203,27 @@ export async function updateDocumentStatus(
 export async function updateDocumentProcessingState(
   documentId: string,
   updates: Partial<{
-    status: DocumentStatus;
-    current_step: string | null;
-    progress: number;
-    page_count: number;
-    chunk_count: number;
-    error_message: string | null;
-    checksum_sha256: string;
-    source_title: string;
-    source_author: string;
-    parser_name: string;
-    parser_version: string;
-    chunk_strategy: string;
-    embedding_model: string;
-    embedding_dimensions: number;
-    metadata: Record<string, any>;
+    status: DocumentStatus
+    current_step: string | null
+    progress: number
+    page_count: number
+    chunk_count: number
+    error_message: string | null
+    checksum_sha256: string
+    source_title: string
+    source_author: string
+    parser_name: string
+    parser_version: string
+    chunk_strategy: string
+    embedding_model: string
+    embedding_dimensions: number
+    metadata: Record<string, any>
   }>
 ): Promise<void> {
-  const { error } = await supabaseAdmin.from("documents").update(updates).eq("id", documentId);
+  const { error } = await supabaseAdmin.from("documents").update(updates).eq("id", documentId)
 
   if (error) {
-    throw new Error(`更新文档处理状态失败: ${error.message}`);
+    throw new Error(`更新文档处理状态失败: ${error.message}`)
   }
 }
 
@@ -228,29 +233,29 @@ export async function updateDocumentProcessingState(
 export async function updateDocument(
   documentId: string,
   updates: Partial<{
-    file_name: string;
-    source_title: string;
-    source_author: string;
-    source_published_date: string;
-    status: DocumentStatus;
-    current_step: string | null;
-    progress: number;
-    page_count: number;
-    chunk_count: number;
-    error_message: string | null;
-    checksum_sha256: string;
-    parser_name: string;
-    parser_version: string;
-    chunk_strategy: string;
-    embedding_model: string;
-    embedding_dimensions: number;
-    metadata: Record<string, any>;
+    file_name: string
+    source_title: string
+    source_author: string
+    source_published_date: string
+    status: DocumentStatus
+    current_step: string | null
+    progress: number
+    page_count: number
+    chunk_count: number
+    error_message: string | null
+    checksum_sha256: string
+    parser_name: string
+    parser_version: string
+    chunk_strategy: string
+    embedding_model: string
+    embedding_dimensions: number
+    metadata: Record<string, any>
   }>
 ): Promise<void> {
-  const { error } = await supabaseAdmin.from("documents").update(updates).eq("id", documentId);
+  const { error } = await supabaseAdmin.from("documents").update(updates).eq("id", documentId)
 
   if (error) {
-    throw new Error(`更新文档失败: ${error.message}`);
+    throw new Error(`更新文档失败: ${error.message}`)
   }
 }
 
@@ -259,24 +264,24 @@ export async function updateDocument(
  */
 export async function deleteDocument(documentId: string): Promise<void> {
   // 先获取文件路径
-  const doc = await getDocument(documentId);
-  if (!doc) return;
+  const doc = await getDocument(documentId)
+  if (!doc) return
 
   // 删除文档记录（向量块会级联删除）
-  const { error: docError } = await supabaseAdmin.from("documents").delete().eq("id", documentId);
+  const { error: docError } = await supabaseAdmin.from("documents").delete().eq("id", documentId)
 
   if (docError) {
-    throw new Error(`删除文档失败: ${docError.message}`);
+    throw new Error(`删除文档失败: ${docError.message}`)
   }
 
   // 删除 Storage 文件
   if (doc.file_path) {
     const { error: storageError } = await supabaseAdmin.storage
       .from("documents")
-      .remove([doc.file_path]);
+      .remove([doc.file_path])
 
     if (storageError) {
-      console.error(`Storage 文件删除失败: ${storageError.message}`);
+      console.error(`Storage 文件删除失败: ${storageError.message}`)
     }
   }
 }
@@ -289,7 +294,7 @@ export async function deleteDocument(documentId: string): Promise<void> {
  * 批量插入向量块
  */
 export async function insertChunks(chunks: ChunkInsert[]): Promise<void> {
-  if (chunks.length === 0) return;
+  if (chunks.length === 0) return
 
   const { error } = await supabaseAdmin.from("document_chunks").insert(
     chunks.map((c) => ({
@@ -310,10 +315,10 @@ export async function insertChunks(chunks: ChunkInsert[]): Promise<void> {
       embedding_dimensions: c.embedding_dimensions || 1536,
       metadata: c.metadata || {},
     }))
-  );
+  )
 
   if (error) {
-    throw new Error(`插入向量块失败: ${error.message}`);
+    throw new Error(`插入向量块失败: ${error.message}`)
   }
 }
 
@@ -322,8 +327,8 @@ export async function insertChunks(chunks: ChunkInsert[]): Promise<void> {
  */
 export async function insertChunksInBatches(chunks: ChunkInsert[], batchSize = 100): Promise<void> {
   for (let i = 0; i < chunks.length; i += batchSize) {
-    const batch = chunks.slice(i, i + batchSize);
-    await insertChunks(batch);
+    const batch = chunks.slice(i, i + batchSize)
+    await insertChunks(batch)
   }
 }
 
@@ -335,13 +340,13 @@ export async function getDocumentChunks(documentId: string): Promise<DocumentChu
     .from("document_chunks")
     .select("*")
     .eq("document_id", documentId)
-    .order("chunk_index", { ascending: true });
+    .order("chunk_index", { ascending: true })
 
   if (error) {
-    throw new Error(`查询向量块失败: ${error.message}`);
+    throw new Error(`查询向量块失败: ${error.message}`)
   }
 
-  return (data || []) as DocumentChunk[];
+  return (data || []) as DocumentChunk[]
 }
 
 /**
@@ -351,13 +356,13 @@ export async function getChunkCount(documentId: string): Promise<number> {
   const { count, error } = await supabaseAdmin
     .from("document_chunks")
     .select("*", { count: "exact", head: true })
-    .eq("document_id", documentId);
+    .eq("document_id", documentId)
 
   if (error) {
-    throw new Error(`查询向量块数量失败: ${error.message}`);
+    throw new Error(`查询向量块数量失败: ${error.message}`)
   }
 
-  return count || 0;
+  return count || 0
 }
 
 /**
@@ -367,10 +372,10 @@ export async function deleteDocumentChunks(documentId: string): Promise<void> {
   const { error } = await supabaseAdmin
     .from("document_chunks")
     .delete()
-    .eq("document_id", documentId);
+    .eq("document_id", documentId)
 
   if (error) {
-    throw new Error(`删除向量块失败: ${error.message}`);
+    throw new Error(`删除向量块失败: ${error.message}`)
   }
 }
 
@@ -385,24 +390,24 @@ export async function semanticSearch(
   queryEmbedding: number[],
   userId: string,
   options: {
-    threshold?: number;
-    topK?: number;
+    threshold?: number
+    topK?: number
   } = {}
 ): Promise<SearchResult[]> {
-  const { threshold = 0.7, topK = 5 } = options;
+  const { threshold = 0.7, topK = 5 } = options
 
   const { data, error } = await supabaseAdmin.rpc("search_chunks", {
     query_embedding: queryEmbedding,
     p_user_id: userId,
     match_threshold: threshold,
     match_count: topK,
-  });
+  })
 
   if (error) {
-    throw new Error(`向量搜索失败: ${error.message}`);
+    throw new Error(`向量搜索失败: ${error.message}`)
   }
 
-  return (data || []) as SearchResult[];
+  return (data || []) as SearchResult[]
 }
 
 /**
@@ -417,13 +422,13 @@ export async function keywordSearch(
     search_query: query,
     p_user_id: userId,
     match_count: topK,
-  });
+  })
 
   if (error) {
-    throw new Error(`关键词搜索失败: ${error.message}`);
+    throw new Error(`关键词搜索失败: ${error.message}`)
   }
 
-  return (data || []) as SearchResult[];
+  return (data || []) as SearchResult[]
 }
 
 /**
@@ -434,13 +439,13 @@ export async function hybridSearch(
   query: string,
   userId: string,
   options: {
-    threshold?: number;
-    topK?: number;
-    vectorWeight?: number;
-    keywordWeight?: number;
+    threshold?: number
+    topK?: number
+    vectorWeight?: number
+    keywordWeight?: number
   } = {}
 ): Promise<HybridSearchResult[]> {
-  const { threshold = 0.6, topK = 5, vectorWeight = 0.7, keywordWeight = 0.3 } = options;
+  const { threshold = 0.6, topK = 5, vectorWeight = 0.7, keywordWeight = 0.3 } = options
 
   const { data, error } = await supabaseAdmin.rpc("hybrid_search", {
     query_embedding: queryEmbedding,
@@ -450,13 +455,13 @@ export async function hybridSearch(
     match_count: topK,
     vector_weight: vectorWeight,
     keyword_weight: keywordWeight,
-  });
+  })
 
   if (error) {
-    throw new Error(`混合搜索失败: ${error.message}`);
+    throw new Error(`混合搜索失败: ${error.message}`)
   }
 
-  return (data || []) as HybridSearchResult[];
+  return (data || []) as HybridSearchResult[]
 }
 
 /**
@@ -473,7 +478,7 @@ export function resultsToCitations(results: SearchResult[]): Citation[] {
     source_title: r.source_title ?? null,
     source_author: r.source_author ?? null,
     similarity: r.similarity,
-  }));
+  }))
 }
 
 // =============================================
@@ -488,13 +493,13 @@ export async function createSession(userId: string, title?: string): Promise<Cha
     .from("chat_sessions")
     .insert({ user_id: userId, title: title || "新对话" })
     .select()
-    .single();
+    .single()
 
   if (error) {
-    throw new Error(`创建会话失败: ${error.message}`);
+    throw new Error(`创建会话失败: ${error.message}`)
   }
 
-  return data as ChatSession;
+  return data as ChatSession
 }
 
 /**
@@ -505,13 +510,13 @@ export async function getSessions(userId: string): Promise<ChatSession[]> {
     .from("chat_sessions")
     .select("*")
     .eq("user_id", userId)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
 
   if (error) {
-    throw new Error(`查询会话列表失败: ${error.message}`);
+    throw new Error(`查询会话列表失败: ${error.message}`)
   }
 
-  return (data || []) as ChatSession[];
+  return (data || []) as ChatSession[]
 }
 
 /**
@@ -522,24 +527,24 @@ export async function getSession(sessionId: string): Promise<ChatSession | null>
     .from("chat_sessions")
     .select("*")
     .eq("id", sessionId)
-    .single();
+    .single()
 
   if (error) {
-    if (error.code === "PGRST116") return null;
-    throw new Error(`查询会话失败: ${error.message}`);
+    if (error.code === "PGRST116") return null
+    throw new Error(`查询会话失败: ${error.message}`)
   }
 
-  return data as ChatSession;
+  return data as ChatSession
 }
 
 /**
  * 更新会话标题
  */
 export async function updateSessionTitle(sessionId: string, title: string): Promise<void> {
-  const { error } = await supabaseAdmin.from("chat_sessions").update({ title }).eq("id", sessionId);
+  const { error } = await supabaseAdmin.from("chat_sessions").update({ title }).eq("id", sessionId)
 
   if (error) {
-    throw new Error(`更新会话标题失败: ${error.message}`);
+    throw new Error(`更新会话标题失败: ${error.message}`)
   }
 }
 
@@ -547,17 +552,17 @@ export async function setSessionArchived(sessionId: string, archived: boolean): 
   const { error } = await supabaseAdmin
     .from("chat_sessions")
     .update({ is_archived: archived, updated_at: new Date().toISOString() })
-    .eq("id", sessionId);
+    .eq("id", sessionId)
 
   if (error) {
-    throw new Error(`更新会话归档状态失败: ${error.message}`);
+    throw new Error(`更新会话归档状态失败: ${error.message}`)
   }
 }
 
 export async function updateChatMessage(
   sessionId: string,
   messageId: string,
-  patch: { content?: string; metadata?: Record<string, unknown> },
+  patch: { content?: string; metadata?: Record<string, unknown> }
 ): Promise<void> {
   const { error } = await supabaseAdmin
     .from("chat_messages")
@@ -566,10 +571,10 @@ export async function updateChatMessage(
       ...(patch.metadata !== undefined ? { metadata: patch.metadata } : {}),
     })
     .eq("id", messageId)
-    .eq("session_id", sessionId);
+    .eq("session_id", sessionId)
 
   if (error) {
-    throw new Error(`更新消息失败: ${error.message}`);
+    throw new Error(`更新消息失败: ${error.message}`)
   }
 }
 
@@ -577,10 +582,10 @@ export async function updateChatMessage(
  * 删除会话（会级联删除消息）
  */
 export async function deleteSession(sessionId: string): Promise<void> {
-  const { error } = await supabaseAdmin.from("chat_sessions").delete().eq("id", sessionId);
+  const { error } = await supabaseAdmin.from("chat_sessions").delete().eq("id", sessionId)
 
   if (error) {
-    throw new Error(`删除会话失败: ${error.message}`);
+    throw new Error(`删除会话失败: ${error.message}`)
   }
 }
 
@@ -591,10 +596,10 @@ export async function touchSession(sessionId: string): Promise<void> {
   const { error } = await supabaseAdmin
     .from("chat_sessions")
     .update({ updated_at: new Date().toISOString() })
-    .eq("id", sessionId);
+    .eq("id", sessionId)
 
   if (error) {
-    console.error(`更新会话活跃时间失败: ${error.message}`);
+    console.error(`更新会话活跃时间失败: ${error.message}`)
   }
 }
 
@@ -612,18 +617,22 @@ export async function saveMessage(data: MessageInsert): Promise<ChatMessage> {
     content: data.content,
     citations: data.citations || [],
     metadata: data.metadata || {},
-  };
+  }
   if (data.id) {
-    row.id = data.id;
+    row.id = data.id
   }
 
-  const { data: msg, error } = await supabaseAdmin.from("chat_messages").insert(row).select().single();
+  const { data: msg, error } = await supabaseAdmin
+    .from("chat_messages")
+    .insert(row)
+    .select()
+    .single()
 
   if (error) {
-    throw new Error(`保存消息失败: ${error.message}`);
+    throw new Error(`保存消息失败: ${error.message}`)
   }
 
-  return msg as ChatMessage;
+  return msg as ChatMessage
 }
 
 /**
@@ -634,23 +643,23 @@ export async function getSessionMessages(sessionId: string): Promise<ChatMessage
     .from("chat_messages")
     .select("*")
     .eq("session_id", sessionId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
 
   if (error) {
-    throw new Error(`查询消息列表失败: ${error.message}`);
+    throw new Error(`查询消息列表失败: ${error.message}`)
   }
 
-  return (data || []) as ChatMessage[];
+  return (data || []) as ChatMessage[]
 }
 
 /**
  * 删除会话的所有消息
  */
 export async function deleteSessionMessages(sessionId: string): Promise<void> {
-  const { error } = await supabaseAdmin.from("chat_messages").delete().eq("session_id", sessionId);
+  const { error } = await supabaseAdmin.from("chat_messages").delete().eq("session_id", sessionId)
 
   if (error) {
-    throw new Error(`删除消息失败: ${error.message}`);
+    throw new Error(`删除消息失败: ${error.message}`)
   }
 }
 
@@ -661,13 +670,13 @@ export async function getMessageCount(sessionId: string): Promise<number> {
   const { count, error } = await supabaseAdmin
     .from("chat_messages")
     .select("*", { count: "exact", head: true })
-    .eq("session_id", sessionId);
+    .eq("session_id", sessionId)
 
   if (error) {
-    throw new Error(`查询消息数量失败: ${error.message}`);
+    throw new Error(`查询消息数量失败: ${error.message}`)
   }
 
-  return count || 0;
+  return count || 0
 }
 
 // =============================================
@@ -679,18 +688,18 @@ export async function getMessageCount(sessionId: string): Promise<number> {
  */
 export async function deleteDocumentCompletely(documentId: string): Promise<void> {
   // 1. 获取文档信息
-  const doc = await getDocument(documentId);
-  if (!doc) return;
+  const doc = await getDocument(documentId)
+  if (!doc) return
 
   // 2. 删除向量块
-  await deleteDocumentChunks(documentId);
+  await deleteDocumentChunks(documentId)
 
   // 3. 删除文档记录
-  await supabaseAdmin.from("documents").delete().eq("id", documentId);
+  await supabaseAdmin.from("documents").delete().eq("id", documentId)
 
   // 4. 删除 Storage 文件
   if (doc.file_path) {
-    await supabaseAdmin.storage.from("documents").remove([doc.file_path]);
+    await supabaseAdmin.storage.from("documents").remove([doc.file_path])
   }
 }
 
@@ -703,23 +712,23 @@ export async function createSessionWithMessage(
   title?: string
 ): Promise<ChatSession> {
   // 1. 创建会话
-  const session = await createSession(userId, title || generateSessionTitle(firstMessage));
+  const session = await createSession(userId, title || generateSessionTitle(firstMessage))
 
   // 2. 保存首条消息
   await saveMessage({
     session_id: session.id,
     role: "user",
     content: firstMessage,
-  });
+  })
 
-  return session;
+  return session
 }
 
 /**
  * 生成会话标题（取消息前30个字）
  */
 function generateSessionTitle(message: string): string {
-  return message.length > 30 ? message.slice(0, 30) + "..." : message;
+  return message.length > 30 ? message.slice(0, 30) + "..." : message
 }
 
 // =============================================
@@ -730,34 +739,34 @@ function generateSessionTitle(message: string): string {
  * 获取用户文档统计
  */
 export async function getUserDocumentStats(userId: string): Promise<{
-  total: number;
-  ready: number;
-  processing: number;
-  failed: number;
-  totalChunks: number;
+  total: number
+  ready: number
+  processing: number
+  failed: number
+  totalChunks: number
 }> {
   const { data: docs, error: docsError } = await supabaseAdmin
     .from("documents")
     .select("id, status")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
 
   if (docsError) {
-    throw new Error(`查询文档统计失败: ${docsError.message}`);
+    throw new Error(`查询文档统计失败: ${docsError.message}`)
   }
 
-  const total = docs?.length || 0;
-  const ready = docs?.filter((d) => d.status === "ready").length || 0;
-  const processing = docs?.filter((d) => d.status === "processing").length || 0;
-  const failed = docs?.filter((d) => d.status === "failed").length || 0;
+  const total = docs?.length || 0
+  const ready = docs?.filter((d) => d.status === "ready").length || 0
+  const processing = docs?.filter((d) => d.status === "processing").length || 0
+  const failed = docs?.filter((d) => d.status === "failed").length || 0
 
   // 查询向量块总数
   const { count: totalChunks, error: chunksError } = await supabaseAdmin
     .from("document_chunks")
     .select("*", { count: "exact", head: true })
-    .in("document_id", docs?.map((d) => d.id) || []);
+    .in("document_id", docs?.map((d) => d.id) || [])
 
   if (chunksError) {
-    console.error(`查询向量块统计失败: ${chunksError.message}`);
+    console.error(`查询向量块统计失败: ${chunksError.message}`)
   }
 
   return {
@@ -766,23 +775,23 @@ export async function getUserDocumentStats(userId: string): Promise<{
     processing,
     failed,
     totalChunks: totalChunks || 0,
-  };
+  }
 }
 
 /**
  * 获取用户会话统计
  */
 export async function getUserChatStats(userId: string): Promise<{
-  totalSessions: number;
-  totalMessages: number;
+  totalSessions: number
+  totalMessages: number
 }> {
   const { count: totalSessions, error: sessionsError } = await supabaseAdmin
     .from("chat_sessions")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", userId);
+    .eq("user_id", userId)
 
   if (sessionsError) {
-    throw new Error(`查询会话统计失败: ${sessionsError.message}`);
+    throw new Error(`查询会话统计失败: ${sessionsError.message}`)
   }
 
   const { count: totalMessages, error: messagesError } = await supabaseAdmin
@@ -791,14 +800,14 @@ export async function getUserChatStats(userId: string): Promise<{
     .in(
       "session_id",
       (await getSessions(userId)).map((s) => s.id)
-    );
+    )
 
   if (messagesError) {
-    console.error(`查询消息统计失败: ${messagesError.message}`);
+    console.error(`查询消息统计失败: ${messagesError.message}`)
   }
 
   return {
     totalSessions: totalSessions || 0,
     totalMessages: totalMessages || 0,
-  };
+  }
 }

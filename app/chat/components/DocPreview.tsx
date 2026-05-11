@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useCitationPreview } from "./CitationPreviewContext";
+import { useCitationPreview } from "./CitationPreviewContext"
 
 export default function DocPreview() {
-  const { state, clear } = useCitationPreview();
+  const { state, clear } = useCitationPreview()
 
   if (state.status === "idle") {
     return (
@@ -15,14 +15,14 @@ export default function DocPreview() {
           ，或消息下方的「参考片段」按钮，即可在此查看对应原文。
         </p>
       </div>
-    );
+    )
   }
 
-  const { citation } = state;
+  const { citation } = state
   const body =
     state.status === "ready" && state.fullContent != null && state.fullContent.length > 0
       ? state.fullContent
-      : citation.content_snippet;
+      : citation.content_snippet
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 p-4">
@@ -52,9 +52,11 @@ export default function DocPreview() {
           {body}
         </pre>
         {state.status === "ready" && !state.fullContent && (
-          <p className="mt-2 text-label-sm text-on-surface-variant">未能加载全文，已显示检索片段。</p>
+          <p className="mt-2 text-label-sm text-on-surface-variant">
+            未能加载全文，已显示检索片段。
+          </p>
         )}
       </div>
     </div>
-  );
+  )
 }

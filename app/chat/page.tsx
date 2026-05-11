@@ -1,16 +1,16 @@
-import AssistantChat from "./components/AssistantChat";
-import DocPreview from "./components/DocPreview";
-import { CitationPreviewProvider } from "./components/CitationPreviewContext";
-import { Header } from "./components/Header";
-import { createClient } from "@/lib/supabase-server";
+import AssistantChat from "./components/AssistantChat"
+import DocPreview from "./components/DocPreview"
+import { CitationPreviewProvider } from "./components/CitationPreviewContext"
+import { Header } from "./components/Header"
+import { createClient } from "@/lib/supabase-server"
 
 export default async function ChatPage() {
-  const supabase = createClient();
+  const supabase = createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
-  const metadata = user?.user_metadata ?? {};
+  const metadata = user?.user_metadata ?? {}
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -32,5 +32,5 @@ export default async function ChatPage() {
         </CitationPreviewProvider>
       </div>
     </div>
-  );
+  )
 }

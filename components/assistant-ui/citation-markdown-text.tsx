@@ -1,38 +1,41 @@
-"use client";
+"use client"
 
-import "@assistant-ui/react-markdown/styles/dot.css";
+import "@assistant-ui/react-markdown/styles/dot.css"
 
-import { MarkdownTextPrimitive, type MarkdownTextPrimitiveProps } from "@assistant-ui/react-markdown";
-import { useAuiState, type AssistantState } from "@assistant-ui/react";
-import remarkGfm from "remark-gfm";
-import { type AnchorHTMLAttributes, type FC, memo } from "react";
-import { useCitationPreview } from "@/app/chat/components/CitationPreviewContext";
-import { remarkCitationRefLinks } from "@/lib/remark-citation-ref-links";
-import { readRagCitationsFromMessageMetadata } from "@/lib/rag-citations-metadata";
-import { cn } from "@/lib/utils";
-import { markdownDefaultComponents } from "./markdown-text";
+import {
+  MarkdownTextPrimitive,
+  type MarkdownTextPrimitiveProps,
+} from "@assistant-ui/react-markdown"
+import { useAuiState, type AssistantState } from "@assistant-ui/react"
+import remarkGfm from "remark-gfm"
+import { type AnchorHTMLAttributes, type FC, memo } from "react"
+import { useCitationPreview } from "@/app/chat/components/CitationPreviewContext"
+import { remarkCitationRefLinks } from "@/lib/remark-citation-ref-links"
+import { readRagCitationsFromMessageMetadata } from "@/lib/rag-citations-metadata"
+import { cn } from "@/lib/utils"
+import { markdownDefaultComponents } from "./markdown-text"
 
 type CitationAnchorProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
-  node?: unknown;
-};
+  node?: unknown
+}
 
-const { a: _defaultMarkdownAnchor, ...markdownComponentsWithoutA } = markdownDefaultComponents;
-void _defaultMarkdownAnchor;
+const { a: _defaultMarkdownAnchor, ...markdownComponentsWithoutA } = markdownDefaultComponents
+void _defaultMarkdownAnchor
 
 /** Resolve `#cite-n` from `href` (remark may yield relative `#...` or absolute `.../path#cite-n`). */
 function parseCiteIndexFromHref(href: string | undefined): number | undefined {
-  if (!href) return undefined;
+  if (!href) return undefined
   try {
-    const u = new URL(href, "http://localhost");
-    const m = /^#cite-(\d+)$/.exec(u.hash);
-    if (!m) return undefined;
-    const n = Number.parseInt(m[1]!, 10);
-    return Number.isFinite(n) ? n : undefined;
+    const u = new URL(href, "http://localhost")
+    const m = /^#cite-(\d+)$/.exec(u.hash)
+    if (!m) return undefined
+    const n = Number.parseInt(m[1]!, 10)
+    return Number.isFinite(n) ? n : undefined
   } catch {
-    const m = /#cite-(\d+)/.exec(href);
-    if (!m) return undefined;
-    const n = Number.parseInt(m[1]!, 10);
-    return Number.isFinite(n) ? n : undefined;
+    const m = /#cite-(\d+)/.exec(href)
+    if (!m) return undefined
+    const n = Number.parseInt(m[1]!, 10)
+    return Number.isFinite(n) ? n : undefined
   }
 }
 
@@ -49,31 +52,31 @@ const CitationAnchor: FC<CitationAnchorProps> = ({
   node: _node,
   ...props
 }) => {
-  const { openCitation } = useCitationPreview();
+  const { openCitation } = useCitationPreview()
   const ragCitations = useAuiState((s: AssistantState) =>
-    readRagCitationsFromMessageMetadata(s.message.metadata),
-  );
+    readRagCitationsFromMessageMetadata(s.message.metadata)
+  )
 
-  const n = parseCiteIndexFromHref(href);
+  const n = parseCiteIndexFromHref(href)
   if (n != null) {
     const cite =
-      ragCitations?.length && n >= 1 && n <= ragCitations.length ? ragCitations[n - 1] : undefined;
+      ragCitations?.length && n >= 1 && n <= ragCitations.length ? ragCitations[n - 1] : undefined
     if (cite) {
       return (
         <button
           type="button"
           className={cn(
             "inline cursor-pointer border-0 bg-transparent p-0 font-inherit text-primary underline decoration-primary/50 underline-offset-2 hover:decoration-primary",
-            className,
+            className
           )}
           onClick={(e) => {
-            e.preventDefault();
-            openCitation(cite);
+            e.preventDefault()
+            openCitation(cite)
           }}
         >
           {children}
         </button>
-      );
+      )
     }
     return (
       <span
@@ -81,7 +84,7 @@ const CitationAnchor: FC<CitationAnchorProps> = ({
         tabIndex={0}
         className={cn(
           "inline cursor-not-allowed border-b border-dashed border-on-surface-variant/50 font-inherit text-on-surface-variant underline-offset-2",
-          className,
+          className
         )}
         title={
           ragCitations?.length
@@ -90,32 +93,32 @@ const CitationAnchor: FC<CitationAnchorProps> = ({
         }
         onClick={(e) => e.preventDefault()}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") e.preventDefault();
+          if (e.key === "Enter" || e.key === " ") e.preventDefault()
         }}
       >
         {children}
       </span>
-    );
+    )
   }
 
   return (
     <a
       className={cn(
         "aui-md-a text-oklch(0.205 0 0) underline underline-offset-2 hover:text-oklch(0.205 0 0)/80 dark:text-oklch(0.922 0 0) dark:hover:text-oklch(0.922 0 0)/80",
-        className,
+        className
       )}
       href={href}
       {...props}
     >
       {children}
     </a>
-  );
-};
+  )
+}
 
 const citationMarkdownComponents = {
   ...markdownComponentsWithoutA,
   a: CitationAnchor,
-} as NonNullable<MarkdownTextPrimitiveProps["components"]>;
+} as NonNullable<MarkdownTextPrimitiveProps["components"]>
 
 const CitationMarkdownTextImpl: FC = () => {
   return (
@@ -124,7 +127,7 @@ const CitationMarkdownTextImpl: FC = () => {
       className="aui-md"
       components={citationMarkdownComponents}
     />
-  );
-};
+  )
+}
 
-export const CitationMarkdownText = memo(CitationMarkdownTextImpl);
+export const CitationMarkdownText = memo(CitationMarkdownTextImpl)

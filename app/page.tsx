@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "next/link"
 
 export default function Home() {
   return (
@@ -57,5 +57,5 @@ export default function Home() {
         <p className="text-sm text-gray-400">DocAI © 2025</p>
       </footer>
     </div>
-  );
+  )
 }

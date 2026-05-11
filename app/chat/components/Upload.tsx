@@ -1,102 +1,102 @@
-"use client";
+"use client"
 
-import { useState } from "react";
+import { useState } from "react"
 
 interface UploadProps {
-  onUpload?: (files: File[]) => void;
+  onUpload?: (files: File[]) => void
 }
 
-const MAX_FILE_SIZE = 1 *1024 * 1024;
+const MAX_FILE_SIZE = 1 * 1024 * 1024
 
 function isPdf(file: File) {
-  return file.name.toLowerCase().endsWith(".pdf");
+  return file.name.toLowerCase().endsWith(".pdf")
 }
 
 export function Upload({ onUpload }: UploadProps) {
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false)
 
   const uploadFiles = async (selectedFiles: FileList | File[]) => {
-    const files = Array.from(selectedFiles);
-    if (files.length === 0) return;
+    const files = Array.from(selectedFiles)
+    if (files.length === 0) return
 
-    if (isUploading) return;
+    if (isUploading) return
 
-    setIsUploading(true);
+    setIsUploading(true)
 
-    const uploadedFiles: File[] = [];
-    const failedFiles: string[] = [];
+    const uploadedFiles: File[] = []
+    const failedFiles: string[] = []
 
     try {
       for (const file of files) {
         if (!isPdf(file)) {
-          failedFiles.push(`${file.name}: 仅支持 PDF 文件`);
-          continue;
+          failedFiles.push(`${file.name}: 仅支持 PDF 文件`)
+          continue
         }
 
         if (file.size > MAX_FILE_SIZE) {
-          failedFiles.push(`${file.name}: 文件不能超过 1MB`);
-          continue;
+          failedFiles.push(`${file.name}: 文件不能超过 1MB`)
+          continue
         }
 
-        const formData = new FormData();
-        formData.append("file", file);
+        const formData = new FormData()
+        formData.append("file", file)
 
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
-        });
+        })
 
         if (!response.ok) {
-          const errorText = await response.text();
-          let errorMessage = errorText || "上传失败";
+          const errorText = await response.text()
+          let errorMessage = errorText || "上传失败"
 
           try {
-            const error = JSON.parse(errorText) as { error?: string };
-            errorMessage = error.error || errorMessage;
+            const error = JSON.parse(errorText) as { error?: string }
+            errorMessage = error.error || errorMessage
           } catch {
             // API routes may return plain text during unexpected failures.
           }
 
-          failedFiles.push(`${file.name}: ${errorMessage}`);
-          continue;
+          failedFiles.push(`${file.name}: ${errorMessage}`)
+          continue
         }
 
-        uploadedFiles.push(file);
+        uploadedFiles.push(file)
       }
 
       if (uploadedFiles.length > 0) {
-        onUpload?.(uploadedFiles);
+        onUpload?.(uploadedFiles)
       }
 
       if (failedFiles.length > 0) {
-        alert(failedFiles.join("\n"));
+        alert(failedFiles.join("\n"))
       }
     } catch (error) {
-      console.error("上传错误:", error);
-      alert("上传过程中出现错误");
+      console.error("上传错误:", error)
+      alert("上传过程中出现错误")
     } finally {
-      setIsUploading(false);
+      setIsUploading(false)
     }
-  };
+  }
 
   const handleClick = async () => {
-    if (isUploading) return;
+    if (isUploading) return
 
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".pdf";
-    input.multiple = true;
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".pdf"
+    input.multiple = true
     input.onchange = async (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (files) await uploadFiles(files);
-    };
-    input.click();
-  };
+      const files = (e.target as HTMLInputElement).files
+      if (files) await uploadFiles(files)
+    }
+    input.click()
+  }
 
   const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    await uploadFiles(event.dataTransfer.files);
-  };
+    event.preventDefault()
+    await uploadFiles(event.dataTransfer.files)
+  }
 
   return (
     <div
@@ -143,5 +143,5 @@ export function Upload({ onUpload }: UploadProps) {
       </p>
       <p className="text-label-sm text-on-surface-variant mt-1">PDF，最大 1MB</p>
     </div>
-  );
+  )
 }

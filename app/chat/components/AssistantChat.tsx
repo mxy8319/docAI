@@ -1,25 +1,25 @@
-"use client";
+"use client"
 
-import { useCallback, useState } from "react";
-import type { ChatOnFinishCallback, UIMessage } from "ai";
-import { AssistantRuntimeProvider, useAui } from "@assistant-ui/react";
-import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
-import { Thread } from "@/components/assistant-ui/thread";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import { ChatSidebar } from "./ChatSidebar";
-import { useSupabaseChatRuntime } from "../useSupabaseChatRuntime";
+import { useCallback, useState } from "react"
+import type { ChatOnFinishCallback, UIMessage } from "ai"
+import { AssistantRuntimeProvider, useAui } from "@assistant-ui/react"
+import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk"
+import { Thread } from "@/components/assistant-ui/thread"
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { ChatSidebar } from "./ChatSidebar"
+import { useSupabaseChatRuntime } from "../useSupabaseChatRuntime"
 
 export default function AssistantChat() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   const logChatFinish = useCallback<ChatOnFinishCallback<UIMessage>>(
     ({ message, messages, isAbort, isDisconnect, isError, finishReason }) => {
-      const answer = message;
-      let question: UIMessage | undefined;
-      const aiIdx = messages.findIndex((m) => m.id === answer.id);
+      const answer = message
+      let question: UIMessage | undefined
+      const aiIdx = messages.findIndex((m) => m.id === answer.id)
       if (aiIdx > 0) {
-        const prev = messages[aiIdx - 1];
-        if (prev?.role === "user") question = prev;
+        const prev = messages[aiIdx - 1]
+        if (prev?.role === "user") question = prev
       }
       console.log("[docai] 本轮问答完整数据", {
         finishReason,
@@ -29,19 +29,19 @@ export default function AssistantChat() {
         question,
         answer,
         messages,
-      });
+      })
     },
-    [],
-  );
+    []
+  )
 
   const runtime = useSupabaseChatRuntime({
     transport: new AssistantChatTransport({
       api: "/api/chat",
     }),
     onFinish: logChatFinish,
-  });
+  })
 
-  const aui = useAui();
+  const aui = useAui()
 
   return (
     <AssistantRuntimeProvider runtime={runtime} aui={aui}>
@@ -60,7 +60,7 @@ export default function AssistantChat() {
             </button>
           </>
         )}
-        
+
         {!isSidebarOpen && (
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -76,5 +76,5 @@ export default function AssistantChat() {
         </div>
       </div>
     </AssistantRuntimeProvider>
-  );
+  )
 }

@@ -1,2 +1,0 @@
-export type { ExternalStoreAdapter, ExternalStoreMessageConverter, ExternalStoreThreadListAdapter, ExternalStoreThreadData, } from "@assistant-ui/core";
-//# sourceMappingURL=ExternalStoreAdapter.d.ts.map

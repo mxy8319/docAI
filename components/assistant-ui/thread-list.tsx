@@ -1,18 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   AuiIf,
   ThreadListItemMorePrimitive,
   ThreadListItemPrimitive,
   ThreadListPrimitive,
-} from "@assistant-ui/react";
-import {
-  ArchiveIcon,
-  MoreHorizontalIcon,
-  PlusIcon,
-  TrashIcon,
-} from "lucide-react";
-import type { FC } from "react";
+} from "@assistant-ui/react"
+import { ArchiveIcon, MoreHorizontalIcon, PlusIcon, TrashIcon } from "lucide-react"
+import type { FC } from "react"
 
 export const ThreadList: FC = () => {
   return (
@@ -22,13 +17,11 @@ export const ThreadList: FC = () => {
         <ThreadListSkeleton />
       </AuiIf>
       <AuiIf condition={(s) => !s.threads.isLoading}>
-        <ThreadListPrimitive.Items>
-          {() => <ThreadListItem />}
-        </ThreadListPrimitive.Items>
+        <ThreadListPrimitive.Items>{() => <ThreadListItem />}</ThreadListPrimitive.Items>
       </AuiIf>
     </ThreadListPrimitive.Root>
-  );
-};
+  )
+}
 
 const ThreadListNew: FC = () => {
   return (
@@ -41,8 +34,8 @@ const ThreadListNew: FC = () => {
         New Thread
       </Button>
     </ThreadListPrimitive.New>
-  );
-};
+  )
+}
 
 const ThreadListSkeleton: FC = () => {
   return (
@@ -58,8 +51,8 @@ const ThreadListSkeleton: FC = () => {
         </div>
       ))}
     </div>
-  );
-};
+  )
+}
 
 const ThreadListItem: FC = () => {
   return (
@@ -71,8 +64,8 @@ const ThreadListItem: FC = () => {
       </ThreadListItemPrimitive.Trigger>
       <ThreadListItemMore />
     </ThreadListItemPrimitive.Root>
-  );
-};
+  )
+}
 
 const ThreadListItemMore: FC = () => {
   return (
@@ -106,5 +99,5 @@ const ThreadListItemMore: FC = () => {
         </ThreadListItemPrimitive.Delete>
       </ThreadListItemMorePrimitive.Content>
     </ThreadListItemMorePrimitive.Root>
-  );
-};
+  )
+}

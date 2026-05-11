@@ -1,12 +1,12 @@
-import { Button } from "@/components/ui/button";
-import { signOut } from "../actions";
+import { Button } from "@/components/ui/button"
+import { signOut } from "../actions"
 
 interface HeaderProps {
   user?: {
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
+    name?: string | null
+    email?: string | null
+    image?: string | null
+  }
 }
 
 export function Header({ user }: HeaderProps) {
@@ -70,5 +70,5 @@ export function Header({ user }: HeaderProps) {
         </form>
       </div>
     </header>
-  );
+  )
 }
