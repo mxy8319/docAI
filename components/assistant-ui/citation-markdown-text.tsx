@@ -19,6 +19,23 @@ type CitationAnchorProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
 const { a: _defaultMarkdownAnchor, ...markdownComponentsWithoutA } = markdownDefaultComponents;
 void _defaultMarkdownAnchor;
 
+/** Resolve `#cite-n` from `href` (remark may yield relative `#...` or absolute `.../path#cite-n`). */
+function parseCiteIndexFromHref(href: string | undefined): number | undefined {
+  if (!href) return undefined;
+  try {
+    const u = new URL(href, "http://localhost");
+    const m = /^#cite-(\d+)$/.exec(u.hash);
+    if (!m) return undefined;
+    const n = Number.parseInt(m[1]!, 10);
+    return Number.isFinite(n) ? n : undefined;
+  } catch {
+    const m = /#cite-(\d+)/.exec(href);
+    if (!m) return undefined;
+    const n = Number.parseInt(m[1]!, 10);
+    return Number.isFinite(n) ? n : undefined;
+  }
+}
+
 /**
  * Must NOT be passed through `memoizeMarkdownComponents`: that helper wraps renderers in
  * `React.memo` that only compares the mdast `node`. When `ragCitations` arrives on
@@ -37,9 +54,8 @@ const CitationAnchor: FC<CitationAnchorProps> = ({
     readRagCitationsFromMessageMetadata(s.message.metadata),
   );
 
-  const m = href?.match(/^#cite-(\d+)$/);
-  if (m) {
-    const n = Number.parseInt(m[1]!, 10);
+  const n = parseCiteIndexFromHref(href);
+  if (n != null) {
     const cite =
       ragCitations?.length && n >= 1 && n <= ragCitations.length ? ragCitations[n - 1] : undefined;
     if (cite) {

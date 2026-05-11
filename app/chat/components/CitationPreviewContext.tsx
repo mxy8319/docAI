@@ -21,8 +21,6 @@ export function CitationPreviewProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<CitationPreviewState>({ status: "idle" });
 
   const openCitation = useCallback((citation: Citation) => {
-
-    console.log("citation", citation);
     setState({ status: "loading", citation });
     void fetchChunkPreview(citation.chunk_id)
       .then((row) => {

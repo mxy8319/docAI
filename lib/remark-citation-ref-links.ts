@@ -1,10 +1,16 @@
 import type { Link, PhrasingContent, Root, Text } from "mdast";
 import { visit } from "unist-util-visit";
 
-const CITE_RE = /\[(\d+)\]/g;
+/** ASCII [n]、中文【n】、全角方括号［n］ */
+const CITE_RE = /(?:\[(\d+)\]|【(\d+)】|［(\d+)］)/g;
+
+function citeMatchGroups(m: RegExpExecArray): { n: string; raw: string } {
+  const n = m[1] ?? m[2] ?? m[3]!;
+  return { n, raw: m[0] };
+}
 
 /**
- * Turn RAG bracket refs like [1] into markdown links `#cite-1` so the UI can render them as buttons.
+ * Turn RAG bracket refs like [1]、【1】 into markdown links `#cite-1` so the UI can render them as buttons.
  */
 export function remarkCitationRefLinks() {
   return (tree: Root) => {
@@ -22,11 +28,11 @@ export function remarkCitationRefLinks() {
       while ((m = CITE_RE.exec(value)) !== null) {
         const before = value.slice(last, m.index);
         if (before) segments.push({ type: "text", value: before } satisfies Text);
-        const n = m[1]!;
+        const { n, raw } = citeMatchGroups(m);
         const link: Link = {
           type: "link",
           url: `#cite-${n}`,
-          children: [{ type: "text", value: m[0] }],
+          children: [{ type: "text", value: raw }],
         };
         segments.push(link);
         last = m.index + m[0].length;

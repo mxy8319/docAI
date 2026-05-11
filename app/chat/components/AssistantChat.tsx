@@ -43,19 +43,6 @@ export default function AssistantChat() {
 
   const aui = useAui();
 
-  // if (!isChatStarted) {
-  //   return (
-  //     <div className="flex min-h-0 flex-1 items-center justify-center bg-background">
-  //       <button
-  //         onClick={() => setIsChatStarted(true)}
-  //         className="px-6 py-3 bg-primary text-on-primary rounded-xl hover:bg-primary/90 transition-colors text-body-lg"
-  //       >
-  //         开始对话
-  //       </button>
-  //     </div>
-  //   );
-  // }
-
   return (
     <AssistantRuntimeProvider runtime={runtime} aui={aui}>
       <div className="flex min-h-0 flex-1 overflow-hidden">

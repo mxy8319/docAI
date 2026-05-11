@@ -13,7 +13,7 @@ import { createAssistantStream } from "assistant-stream";
 import type { FC, PropsWithChildren } from "react";
 import { useMemo } from "react";
 import type { MessageRole } from "@/lib/database.types";
-import type { AiSdkMessageStorageEntry } from "./thread-remote-actions";
+import type { AiSdkMessageStorageEntry } from "./actions/thread-remote";
 import {
   remoteAppendThreadMessage,
   remoteArchiveThread,
@@ -25,7 +25,7 @@ import {
   remoteRenameThread,
   remoteUnarchiveThread,
   remoteUpdateThreadMessage,
-} from "./thread-remote-actions";
+} from "./actions/thread-remote";
 
 class SupabaseThreadHistoryBridge implements ThreadHistoryAdapter {
   constructor(private readonly aui: ReturnType<typeof useAui>) {}
