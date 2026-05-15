@@ -5,7 +5,7 @@ import type { Document, DocumentStatus } from "@/lib/database.types"
 import { cn } from "@/lib/utils"
 import { useCallback, useEffect, useState } from "react"
 import { getChatSidebarLists } from "../actions"
-import { Upload } from "./Upload"
+// import { Upload } from "./Upload"
 
 type SidebarTab = "documents" | "chats"
 
@@ -97,7 +97,7 @@ export function ChatSidebar() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden">
-        {tab === "documents" ? (
+        {/* {tab === "documents" ? (
           <div className="flex h-full min-h-0 flex-col">
             <div className="shrink-0 border-b border-outline/20 p-3">
               <Upload onUpload={() => void refresh()} />
@@ -131,11 +131,13 @@ export function ChatSidebar() {
               )}
             </div>
           </div>
-        ) : (
+        ) :  */}
+        (
           <div className="flex h-full min-h-0 flex-col overflow-y-auto p-3">
             <ThreadList />
           </div>
-        )}
+        )
+        {/* } */}
       </div>
     </div>
   )

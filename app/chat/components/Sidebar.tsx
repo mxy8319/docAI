@@ -1,6 +1,6 @@
 "use client"
 
-import { Upload } from "./Upload"
+import { Upload } from "../../documents/components/Upload"
 import { ThreadList } from "@/components/assistant-ui/thread-list"
 
 export function Sidebar() {

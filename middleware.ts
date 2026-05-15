@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const { response, user } = await updateSession(request)
 
-  if (pathname.startsWith("/chat")) {
+  if (pathname.startsWith("/chat") || pathname.startsWith("/documents")) {
     if (!user) {
       return NextResponse.redirect(new URL("/login", request.url))
     }
@@ -22,5 +22,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/chat/:path*", "/login", "/auth/callback"],
+  matcher: ["/chat/:path*", "/documents", "/documents/:path*", "/login", "/auth/callback"],
 }

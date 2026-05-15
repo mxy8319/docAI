@@ -133,12 +133,18 @@ export async function getDocumentChunkByIdForUser(
 /**
  * 获取用户文档列表（分页）
  */
+function escapeIlikePattern(raw: string): string {
+  return raw.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_")
+}
+
 export async function getDocumentsPaginated(
   userId: string,
   options: {
     page?: number
     pageSize?: number
     status?: DocumentStatus
+    /** Case-insensitive substring match on `file_name` */
+    search?: string
   } = {}
 ): Promise<{
   documents: Document[]
@@ -147,7 +153,7 @@ export async function getDocumentsPaginated(
   pageSize: number
   totalPages: number
 }> {
-  const { page = 1, pageSize = 10, status } = options
+  const { page = 1, pageSize = 10, status, search } = options
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
@@ -155,6 +161,11 @@ export async function getDocumentsPaginated(
 
   if (status) {
     query = query.eq("status", status)
+  }
+
+  const q = search?.trim()
+  if (q) {
+    query = query.ilike("file_name", `%${escapeIlikePattern(q)}%`)
   }
 
   const { data, error, count } = await query

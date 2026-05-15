@@ -1,329 +1,283 @@
-# DocAI 技术实施规范 SPEC v1.0
+# DocAI 技术实施规范 SPEC v2.0
+
+> 与当前仓库对齐（Next.js 14 + Supabase + pgvector + Vercel AI SDK + assistant-ui）。  
+> 若实现变更，请同步更新本文件与 `lib/README.md`、`lib/schema.sql`。
 
 ---
 
-## 📋 总览
+## 总览
 
-| 项目           | 说明                                              |
-| -------------- | ------------------------------------------------- |
-| **目标**       | 6 天完成可演示的 RAG 知识库 MVP                   |
-| **代码量目标** | 1500 行左右                                       |
-| **技术栈**     | Next.js 14 + TypeScript + Prisma + PGVector       |
-| **验收标准**   | 上传 PDF → 提问 → 回答带引用 → 点击跳转到对应页码 |
-
----
-
-## 🚀 实施路线图（6 天）
+| 项目         | 说明                                                                                                                                                       |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **产品目标** | 个人文档知识库：上传 PDF → 解析切块向量化 → 对话式 RAG 问答 → 回答中带可点击引用与出处预览                                                                 |
+| **技术栈**   | Next.js 14（App Router）+ TypeScript + Tailwind CSS + Supabase（Auth / Postgres / Storage）+ pgvector + OpenAI（嵌入 + 对话）                              |
+| **AI 集成**  | `ai` + `@ai-sdk/openai` 流式对话；`@assistant-ui/react` + `@assistant-ui/react-ai-sdk` 聊天 UI；消息持久化走 Supabase 线程适配器                           |
+| **包管理**   | `pnpm@9.15.9`（`packageManager` 已写入 `package.json`，与 `pnpm-lock.yaml` 一致，避免 CI frozen install 与 patch 校验冲突）                                |
+| **验收主线** | 登录 → **文档库**（`/documents`）查看/搜索/分页 PDF 列表与处理状态 → `/chat` 对话 → 流式回答 → 角标与「参考片段」打开出处预览（含文件名、页码、原文/片段） |
 
 ---
 
-### 📅 Day 1: 项目基础脚手架
+## 文档库页面（PDF 列表表格）
 
-**目标**：项目能跑起来，数据库能连接，登录能用。
+> **目标**：将原 `**/chat` 左侧栏中的「文档列表」** 独立为 `**/documents` 表格页\*\*；数据与权限与现有一致，不重复造数据源。
 
-| 序号 | 任务                     | 输出文件               | 验收标准                               |
-| ---- | ------------------------ | ---------------------- | -------------------------------------- |
-| 1.1  | 初始化 Next.js 14 项目   | `package.json`         | `pnpm dev` 能启动，访问 localhost:3000 |
-| 1.2  | TypeScript + ESLint 配置 | `tsconfig.json`        | 零类型错误                             |
-| 1.3  | TailwindCSS 配置         | `tailwind.config.ts`   | 样式能正常工作                         |
-| 1.4  | Prisma + PGVector 配置   | `prisma/schema.prisma` | `npx prisma db push` 能执行成功        |
-| 1.5  | Auth.js 集成             | `lib/auth.ts`          | 能登录 / 登出                          |
-| 1.6  | 布局基础框架             | `app/layout.tsx`       | 导航栏、侧边栏基本布局                 |
+### 产品行为
 
-**Day 1 交付物验证**：
+| 项                 | 说明                                                                                                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **路由**           | `app/documents/page.tsx`（建议路径 `**/documents`\*\*，需登录）                                                                                                                                                                 |
+| **数据**           | 与侧栏文档列表同源：基于 `**documents` 表**、当前登录用户；优先复用 / 扩展 `**lib/db.ts`** 中 `**getDocuments`/`getDocumentsPaginated**`；全量列表仅适合开发调试，**表格页应走服务端分页**。                                    |
+| **名称搜索**       | 对 `**file_name`** 做大小写不敏感模糊匹配（如 PostgREST `**ilike**`）；若 `getDocumentsPaginated`尚无`search`参数，在`**lib/db.ts\*\*` 为同一查询函数增加可选关键字并保持 RLS/用户隔离逻辑不变。                                |
+| **分页**           | **服务端分页**（`page` + `pageSize`，返回 `total` / `totalPages`）；默认页大小产品自定（如 10～20）。                                                                                                                           |
+| **状态列**         | 展示 `**documents.status`**：`uploading`（上传/落库）、`processing`（解析与向量化中）、`ready`（可参与 RAG）、`failed`（失败，可展示 `**error_message**`摘要）。可选展示`**progress**`、`**current_step\*\*` 作为解析阶段提示。 |
+| `**/chat` 侧栏\*\* | **不再承载**「全量文档列表」；保留 **对话线程**、**出处预览**、**上传入口**（上传仍走 `**POST /api/upload`**）；在 Chat 内提供进入 `**/documents\*\*` 的导航（链接或按钮）。                                                    |
 
-- [ ] 开发服务器正常启动
-- [ ] 数据库连接成功，表创建完成
-- [ ] 用户能正常登录登出
-- [ ] 页面布局完整
+### 中间件
 
----
+- 将 `**/documents**`（及子路径若存在）纳入 `**middleware.ts` 的 `matcher**`，与 `**/chat**` 相同：**未登录 → `/login`**。
 
-### 📅 Day 2: 文档解析与向量化
+### 验收（文档库）
 
-**目标**：上传 PDF，后台自动解析分块向量化入库。
-
-| 序号 | 任务              | 输出文件                         | 验收标准                               |
-| ---- | ----------------- | -------------------------------- | -------------------------------------- |
-| 2.1  | 拖拽上传组件      | `components/upload-dropzone.tsx` | 支持拖放 PDF 文件，显示进度            |
-| 2.2  | PDF 文本提取      | `lib/parser/pdf.ts`              | 输入 PDF Buffer → 输出带页码的文本数组 |
-| 2.3  | 智能分块算法      | `lib/parser/chunker.ts`          | 输入长文本 → 输出 512 token 的 chunks  |
-| 2.4  | OpenAI 向量化封装 | `lib/rag/embedding.ts`           | 输入文本 → 输出 1536 维向量            |
-| 2.5  | Chunk 批量入库    | `lib/parser/index.ts`            | chunks + vectors 批量写入 Postgres     |
-
-**Day 2 交付物验证**：
-
-- [ ] 上传一个 10 页 PDF
-- [ ] 数据库 Document 表新增记录
-- [ ] Chunk 表生成 ~ N 条记录，每条带有 vector、page_num
-- [ ] 上传过程无内存溢出
+- 仅展示当前用户的 PDF 文档行，与改造前列表数据一致（抽样对比 `id` / `file_name` / `status`）。
+- 名称搜索在分页下结果正确（含无结果态）。
+- 分页切换后 URL 或状态可刷新保持（Query `?page=` 或 nuqs 等，实现任选其一，SPEC 要求行为而非具体库）。
+- 各 `status` 有可读中文或标签样式映射；`failed` 可见错误摘要。
+- 从 `/chat` 可进入 `/documents`，从 `/documents` 可返回 `**/chat**`（或首页）且会话不断。
 
 ---
 
-### 📅 Day 3: RAG 检索引擎
+## 与 v1 草稿的主要差异（历史说明）
 
-**目标**：用户提问题能召回最相关的 5 个 chunks。
-
-| 序号 | 任务                | 输出文件                | 验收标准                     |
-| ---- | ------------------- | ----------------------- | ---------------------------- |
-| 3.1  | PGVector 相似度检索 | `lib/rag/retriever.ts`  | 问题转向量 → SQL 查询最近邻  |
-| 3.2  | 权限过滤            | `lib/rag/retriever.ts`  | 只能检索到当前用户自己的文档 |
-| 3.3  | RAG Prompt 模板     | `lib/rag/prompt.ts`     | 严格的 Prompt 约束，防止幻觉 |
-| 3.4  | Vercel AI SDK 集成  | `lib/rag/llm.ts`        | 流式调用 OpenAI              |
-| 3.5  | Chat API 接口       | `app/api/chat/route.ts` | 标准的 OpenAI 兼容接口       |
-
-**Day 3 交付物验证**：
-
-- [ ] curl 调用 /api/chat 能返回流式响应
-- [ ] 回答中包含原文引用标记
-- [ ] 超出范围的问题回答"我不知道"
-- [ ] 响应首字 < 2 秒
+| v1 假设                                | 当前实现                                                                                                                               |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Prisma + 自建 `DATABASE_URL`           | **无 Prisma**；使用 **Supabase JS**（`@supabase/ssr` + `@supabase/supabase-js`）与 `lib/schema.sql` 管理表与 RLS                       |
+| NextAuth                               | **Supabase Auth**（`middleware.ts` 保护 `**/chat`、`/documents`\*\*，`/auth/callback` 交换会话）                                       |
+| `lib/rag/*`、`lib/parser/*` 拆分文件名 | 逻辑集中在 `**lib/embeddings.ts**`（解析+切块+嵌入+入库）、`**lib/db.ts**`（检索与业务写）、`**lib/rag-chat.ts**`（Prompt 与引用校验） |
+| 左侧 PDF 渲染 + 页内高亮               | 当前为 **文本出处预览**（`DocPreview` + `CitationPreviewContext`）；`document_chunks.bbox` 在 schema 中预留，高亮非 MVP 必达项         |
+| 固定「6 天日程」                       | 以 **模块与路径** 描述为准；排期由项目自行管理                                                                                         |
+| Chat 左侧承载全量文档列表              | **迁至 `/documents` 表格页**；`/chat` 专注对话与预览（见「文档库页面」）                                                               |
 
 ---
 
-### 📅 Day 4: 对话交互界面
+## 模块与路径（实现清单）
 
-**目标**：漂亮的聊天界面，流式打字机效果。
+### 应用与路由
 
-| 序号 | 任务              | 输出文件                      | 验收标准                 |
-| ---- | ----------------- | ----------------------------- | ------------------------ |
-| 4.1  | assistant-ui 集成 | `app/documents/[id]/page.tsx` | 布局：左侧预览，右侧聊天 |
-| 4.2  | 聊天消息组件      | `components/chat-message.tsx` | 用户 / AI 消息气泡样式   |
-| 4.3  | 流式输出渲染      | `components/chat.tsx`         | 打字机效果流畅           |
-| 4.4  | 文档列表页        | `app/page.tsx`                | 显示用户所有上传的文档   |
-| 4.5  | 自动摘要生成      | `lib/rag/summary.ts`          | 上传完自动生成文档摘要   |
+| 能力                                                      | 路径 / 说明                                                                                                                                                          |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 落地页                                                    | `app/page.tsx`                                                                                                                                                       |
+| 登录                                                      | `app/login/*`、`app/login/actions.ts`                                                                                                                                |
+| OAuth 回调                                                | `app/auth/callback/route.ts`                                                                                                                                         |
+| 对话工作台（对话 / 出处预览、上传；**不含**全量文档列表） | `app/chat/page.tsx`、`app/chat/components/*`                                                                                                                         |
+| PDF 文档库（表格：列表、搜索、分页、状态）                | `app/documents/page.tsx`（及同目录 `actions` 或复用 `app/chat/actions` 中列表查询，**以单一数据源为准**）                                                            |
+| 会话与消息的远程读写                                      | `app/chat/actions/*`（如 `thread-remote.ts`、`sidebar.ts`、`chunk-preview.ts`）、`app/chat/supabase-remote-thread-adapter.tsx`、`app/chat/useSupabaseChatRuntime.ts` |
+| 对话 API（RAG + 流式）                                    | `app/api/chat/route.ts`（`runtime: nodejs`，`maxDuration: 120`）                                                                                                     |
+| 上传 API                                                  | `app/api/upload/route.ts`（`maxDuration: 60`）；成功后触发 `processDocument`                                                                                         |
 
-**Day 4 交付物验证**：
+### 中间件与安全
 
-- [ ] 左右分栏布局正确
-- [ ] 打字机流式输出正常
-- [ ] 消息气泡样式美观
-- [ ] 文档列表能增删
+| 能力                      | 路径                                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 刷新 Supabase 会话 Cookie | `middleware.ts` → `lib/supabase-middleware.ts`                                                         |
+| 受保护路由                | `**/chat`、`/documents`** 需登录；已登录访问 `/login` 重定向到 `**/chat\*\*`（或产品指定的默认落地页） |
 
----
+### 服务端核心库（`lib/`）
 
-### 📅 Day 5: 引用溯源（灵魂功能）
+| 文件                           | 职责摘要                                                                                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schema.sql`                   | 表、索引（含 **HNSW** 向量索引、`pg_trgm`）、Storage bucket、RLS、可选 RPC（如 `hybrid_search`）                                                        |
+| `database.types.ts`            | 与表对齐的 TS 类型（文档、分块、引用、会话等）                                                                                                          |
+| `db.ts`                        | **仅服务端**：文档 CRUD、`document_chunks` 写入、`semanticSearch` / `hybridSearch`（当前 Chat 使用 **semantic**）、`chat_sessions` / `chat_messages` 等 |
+| `storage.ts`                   | Supabase Storage `documents` bucket 路径规则与上传/下载                                                                                                 |
+| `embeddings.ts`                | PDF（`pdf-parse`）→ 规范化文本 → 切块策略 `**page-paragraph-sentence-v1`\*\* → `embedMany` → 批量写入 chunks                                            |
+| `openai-provider.ts`           | `createOpenAI`、对话/嵌入模型名、超时、可选代理（undici）                                                                                               |
+| `rag-chat.ts`                  | 检索结果拼上下文、系统提示、从正文中用 `**[n]` / `【n】` / `［n］**` 收集已校验引用                                                                     |
+| `rag-citations-metadata.ts`    | 从消息的 `metadata.custom.ragCitations`（及兼容字段）读取引用，供 UI                                                                                    |
+| `remark-citation-ref-links.ts` | Markdown 层将角标转为 `#cite-n` 链接，便于与预览联动                                                                                                    |
+| `supabase*.ts`                 | 浏览器 / 服务端 / **service_role** 三类客户端边界（含密钥的模块禁止进 Client Bundle）                                                                   |
 
-**目标**：点击引用，左侧 PDF 预览自动跳转到对应页码并高亮。
+更细的依赖说明见 `**lib/README.md`\*\*。
 
-| 序号 | 任务           | 输出文件                       | 验收标准                    |
-| ---- | -------------- | ------------------------------ | --------------------------- |
-| 5.1  | PDF 预览组件   | `components/pdf-preview.tsx`   | 渲染 PDF、支持页码跳转      |
-| 5.2  | 引用卡片组件   | `components/citation-card.tsx` | 显示来源 + 页码，可点击     |
-| 5.3  | 页码跳转联动   | `app/documents/[id]/page.tsx`  | 点击引用 → 左侧跳转到对应页 |
-| 5.4  | 上下文高亮     | `components/pdf-preview.tsx`   | 高亮显示引用的原文内容      |
-| 5.5  | 多轮上下文支持 | `lib/rag/retriever.ts`         | 对话历史带入下一轮          |
+### 前端组件
 
-**Day 5 交付物验证**：
-
-- [ ] PDF 清晰渲染，翻页流畅
-- [ ] 点击引用卡片立刻跳转到对应页码
-- [ ] 对应内容有高亮标记
-- [ ] 连续 5 轮对话上下文正常
-
----
-
-### 📅 Day 6: 打磨与上线
-
-**目标**：体验优化，可演示版本。
-
-| 序号 | 任务                 | 说明                         |
-| ---- | -------------------- | ---------------------------- |
-| 6.1  | Loading / Empty 状态 | 所有页面的边缘情况处理       |
-| 6.2  | 错误提示优化         | 友好的错误信息和重试按钮     |
-| 6.3  | 移动端适配           | 响应式布局（可选）           |
-| 6.4  | Vercel 部署          | 配置环境变量，一键部署       |
-| 6.5  | 演示用例准备         | 准备 2-3 个示例 PDF 用于演示 |
+| 区域                         | 路径                                                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| assistant-ui 线程与 Markdown | `components/assistant-ui/*`（如 `thread.tsx`、`citation-markdown-text.tsx`、`rag-source-chips.tsx`） |
+| UI 基座                      | `components/ui/*`（Radix + Tailwind 约定）                                                           |
 
 ---
 
-## 🏗️ 完整文件结构 Spec
+## 仓库目录结构（节选）
 
-```
+```text
 docAI/
-├── 📁 app/                            # Next.js App Router
-│   ├── 📁 (auth)/
-│   │   └── login/page.tsx             # 登录页
-│   ├── 📁 (dashboard)/
-│   │   ├── layout.tsx                 # 主布局：导航 + 侧边栏
-│   │   ├── page.tsx                   # 首页 - 我的文档列表
-│   │   └── documents/
-│   │       └── [id]/page.tsx          # 对话页 - 左侧预览 + 右侧聊天
-│   └── 📁 api/
-│       ├── auth/[...nextauth]         # Auth.js
-│       ├── upload/route.ts            # 文档上传接口
-│       ├── parse/route.ts             # 解析向量化接口
-│       └── chat/route.ts              # 对话接口
-│
-├── 📁 components/                      # 可复用组件
-│   ├── upload-dropzone.tsx            # 拖拽上传区域
-│   ├── pdf-preview.tsx                # PDF 预览 + 页码跳转 + 高亮
-│   ├── chat-message.tsx               # 单条消息 + 引用卡片
-│   ├── citation-card.tsx              # 引用来源卡片
-│   └── ui/                            # shadcn/ui 基础组件
-│
-├── 📁 lib/                             # 核心业务逻辑
-│   ├── 📁 rag/
-│   │   ├── embedding.ts               # OpenAI Embedding 封装
-│   │   ├── retriever.ts               # PGVector 相似度检索
-│   │   ├── prompt.ts                  # RAG System Prompt 模板
-│   │   └── llm.ts                     # Vercel AI SDK 封装
-│   │
-│   ├── 📁 parser/
-│   │   ├── pdf.ts                     # PDF.js 提取文本 + 页码
-│   │   └── chunker.ts                 # 智能分块算法
-│   │
-│   ├── auth.ts                        # Auth.js 配置
-│   └── db.ts                          # Prisma Client 单例
-│
-├── 📁 prisma/
-│   └── schema.prisma                  # 数据库 Schema
-│
-├── .env.example                        # 环境变量模板
-├── package.json
-└── SPEC.md                             # 本文件
+├── app/
+│   ├── page.tsx
+│   ├── layout.tsx
+│   ├── login/
+│   ├── auth/callback/route.ts
+│   ├── documents/
+│   │   ├── layout.tsx           # 文档库壳层：侧栏、上传、退出
+│   │   ├── page.tsx             # 表格：搜索、分页、状态
+│   │   ├── format.ts            # 文件大小、相对时间、展示用 ID
+│   │   ├── build-list-href.ts   # 列表 URL query 拼装
+│   │   └── components/          # LibrarySearchBar, LibraryToolbar, DocumentsTable, …
+│   ├── chat/
+│   │   ├── page.tsx
+│   │   ├── components/          # ChatSidebar（无全量文档列表）, AssistantChat, DocPreview, Upload, …
+│   │   ├── actions/             # Server Actions：线程、侧栏、chunk 预览等
+│   │   ├── useSupabaseChatRuntime.ts
+│   │   └── supabase-remote-thread-adapter.tsx
+│   └── api/
+│       ├── chat/route.ts
+│       └── upload/route.ts
+├── components/
+│   ├── assistant-ui/
+│   └── ui/
+├── lib/
+│   ├── schema.sql
+│   ├── database.types.ts
+│   ├── db.ts
+│   ├── storage.ts
+│   ├── embeddings.ts
+│   ├── openai-provider.ts
+│   ├── rag-chat.ts
+│   ├── rag-citations-metadata.ts
+│   ├── remark-citation-ref-links.ts
+│   ├── supabase.ts
+│   ├── supabase-server.ts
+│   ├── supabase-admin.ts
+│   └── supabase-middleware.ts
+├── middleware.ts
+├── patches/                     # pnpm patch（如 assistant-ui IME 相关）
+└── package.json
 ```
 
 ---
 
-## 📊 数据库 Schema Spec
+## 数据库与存储（以 `lib/schema.sql` 为准）
 
-### `User` - 用户表
+### `documents`
 
-| 字段      | 类型     | 说明     |
-| --------- | -------- | -------- |
-| id        | UUID     | 主键     |
-| email     | String   | 唯一索引 |
-| name      | String   | 用户名   |
-| createdAt | DateTime | 创建时间 |
+业务元数据 + 处理状态（如 `uploading` / `processing` / `ready` / `failed`）、`file_path`（Storage 对象键）、`embedding_model` / `embedding_dimensions`、页数与 chunk 计数等。用户隔离：`user_id` → `auth.users`。
 
-### `Document` - 文档表
+### `document_chunks`
 
-| 字段      | 类型     | 说明                             |
-| --------- | -------- | -------------------------------- |
-| id        | UUID     | 主键                             |
-| name      | String   | 文件名                           |
-| fileKey   | String   | Supabase 文件 key                |
-| fileSize  | Int      | 文件大小字节                     |
-| pageCount | Int      | 总页数                           |
-| status    | Enum     | PENDING / PARSING / DONE / ERROR |
-| summary   | Text?    | 自动生成的摘要                   |
-| userId    | UUID     | 外键 -> User                     |
-| createdAt | DateTime |                                  |
+`content`、`chunk_index`、`page_number` / `page_start` / `page_end`、字符范围、`embedding vector(1536)`（默认 **text-embedding-3-small**）、可选 `bbox`（JSON，预留）。
 
-### `Chunk` - 文档分块表（核心！）
+**索引要点**：`document_id`；**HNSW** 于 `embedding vector_cosine_ops`；可选 `pg_trgm` 于 `content`（支撑混合检索等扩展）。
 
-| 字段       | 类型         | 说明              |
-| ---------- | ------------ | ----------------- |
-| id         | UUID         | 主键              |
-| documentId | UUID         | 外键 -> Document  |
-| content    | Text         | 分块文本内容      |
-| pageNum    | Int          | 所在原文档页码    |
-| startIndex | Int          | 在该页的起始位置  |
-| endIndex   | Int          | 在该页的结束位置  |
-| embedding  | Vector(1536) | PGVector 向量列！ |
-| createdAt  | DateTime     |                   |
+### `chat_sessions` / `chat_messages`
 
-**索引设置**：
+多轮会话与消息；`chat_messages.citations`（jsonb）与 `metadata`（jsonb）持久化；与 assistant-ui 远程线程适配器配合。
 
-```prisma
-// 向量相似度检索索引
-index ChunkEmbeddingIndex on Chunk(embedding) using hnsw;
-// 权限过滤索引
-index ChunkDocumentIndex on Chunk(documentId);
-```
+### Storage
+
+Bucket `**documents`**：私有读写策略与 MIME（以 schema 中 `allowed_mime_types` 为准，当前以 **PDF\*\* 为主）。
+
+### 权限
+
+表上启用 **RLS**；服务端批量写库、嵌入流水线等使用 `**supabaseAdmin`（service_role）\*\*，与「用户仅能访问自有数据」策略并存。勿将 service role 暴露到浏览器。
 
 ---
 
-## 🔑 环境变量 Spec
+## RAG 与对话流水线
+
+1. **上传**：`POST /api/upload` → Storage 落文件 → `documents` 记录 → `processDocument`（异步在请求内执行至完成或失败，注意 **Vercel 超时**）。
+2. **索引**：`embeddings.ts` 下载 PDF → `pdf-parse` 按页抽取 → 切块（约 **≤1800 字符/块**、重叠 **150 字符** 等常量见源码）→ `embedMany` → `insertChunksInBatches`。
+3. **提问**：`POST /api/chat` 取最近用户文本 → **query embedding** → `**semanticSearch`**（`RAG_TOP_K`、`RAG_MATCH_THRESHOLD` 可由环境变量覆盖）→ 拼 `buildRagContextBlock` + `buildRagSystemPrompt` → `streamText` → **UIMessageStream\*\*。
+4. **引用**：检索命中经 `resultsToCitations` 挂在 `**messageMetadata` → `custom.ragCitations`\*\*（满足 assistant-ui 元数据合并规则）；正文角标经 `collectValidatedCitations` 与检索序号对齐。
+
+---
+
+## API 与环境变量
+
+### 建议环境变量
 
 ```env
-# Next.js
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key
+# Supabase（浏览器可读的 anon + URL）
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+
+# 服务端仅
+SUPABASE_SERVICE_ROLE_KEY=
 
 # OpenAI
-OPENAI_API_KEY=sk-xxx
+OPENAI_API_KEY=
 
-# Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/docai
+# 可选：RAG 调参
+# RAG_TOP_K=
+# RAG_MATCH_THRESHOLD=
 
-# Supabase Storage
-NEXT_PUBLIC_SUPABASE_URL=xxx
-NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
-SUPABASE_SERVICE_ROLE_KEY=xxx
+# 可选：模型覆盖（若 openai-provider 支持读取）
+# 见 lib/openai-provider.ts
 ```
 
----
+### 运行时
 
-## ✅ 每个模块的验收标准 Checklist
-
-### 🔹 文档解析模块
-
-- [ ] 支持标准 PDF 文本提取
-- [ ] 每个 chunk 携带精确的页码信息
-- [ ] 单 chunk token 数控制在 400-600 之间
-- [ ] 50 页文档解析内存 < 512MB
-
-### 🔹 向量化模块
-
-- [ ] 统一使用 text-embedding-3-small
-- [ ] 批量接口，一次处理最多 100 个
-- [ ] 错误重试机制
-
-### 🔹 检索模块
-
-- [ ] Top 5 召回准确率 > 80%
-- [ ] 一次检索耗时 < 100ms
-- [ ] 严格按用户权限过滤
-- [ ] 向量距离分数可解释
-
-### 🔹 对话模块
-
-- [ ] 流式输出，打字机效果
-- [ ] 每个答案标记引用来源
-- [ ] 不知道的问题明确回答不知道
-- [ ] 支持最多 10 轮对话上下文
-
-### 🔹 引用溯源模块
-
-- [ ] 100% 准确的页码跳转
-- [ ] 原文内容可视化高亮
-- [ ] 响应时间 < 1Ms
+- `**/api/chat**`：`maxDuration = 120`（秒），实际受 **Vercel 套餐** 限制，部署前需对齐计划上限。
+- `**/api/upload`**：`maxDuration = 60`；当前路由内对单文件有 **1MB\*\* 大小校验（与 Storage bucket 上限可不同，以代码为准）。
 
 ---
 
-## 🚩 关键风险点与规避
+## 验收检查清单（与实现对齐）
 
-| 风险           | 概率 | 影响 | 规避方案                               |
-| -------------- | ---- | ---- | -------------------------------------- |
-| PDF 解析乱码   | 中   | 高   | MVP 只支持纯文本 PDF，扫描版提示不支持 |
-| 大文档内存溢出 | 高   | 中   | MVP 限制 50 页，超过直接拒绝           |
-| LLM 幻觉编造   | 高   | 高   | Prompt 三层防护 + 引用反向校验         |
-| 检索不相关     | 中   | 中   | 先保证召回数量，后续优化               |
-| 向量检索慢     | 低   | 中   | HNSW 索引，10 万条内没问题             |
+### 文档与索引
+
+- PDF 上传后 `documents.status` 最终为 `ready`，`chunk_count` > 0（失败时为 `failed` 且有 `error_message`）
+- `document_chunks` 中 `embedding` 非空，页码字段与原文一致性质检通过抽样
+- 仅当前用户文档参与检索（RLS + 查询条件）
+
+### 对话与引用
+
+- 流式回答可完整展示，无未捕获服务端 500
+- 有检索命中时，UI 可展示引用列表；角标样式与 `rag-chat` 约定一致
+- 点击角标或「参考片段」可在右侧打开出处预览（文件名、页码、文本）
+- 无检索命中时，模型行为符合系统提示（不编造库外事实）
+
+### 认证与导航
+
+- 未登录访问 `/chat` 或 `**/documents`\*\* → 跳转登录
+- 登录后可稳定刷新页面不断会话（Cookie 与 middleware）
+
+### 部署
+
+- Vercel 使用 **Corepack** 识别 `packageManager`（pnpm 9）
+- 生产环境已配置上述密钥与 Supabase Auth 回调 URL（含 `/auth/callback`）
 
 ---
 
-## 🎯 最小可行产品边界定义
+## MVP 边界（当前代码倾向）
 
-✅ **做**：
+**包含**
 
-- PDF / TXT / MD 纯文本文档
-- 单文档问答
-- 引用溯源 + 页码跳转
+- PDF 上传与解析入库（`pdf-parse`）
+- **文档库表格页**（`/documents`）：全量列表的正式入口，搜索、分页、状态展示
+- 单用户隔离下的语义检索 + 流式对话
+- 引用元数据与文本出处预览
 
-❌ **MVP 不做**：
+**不包含或未作为必达**
 
-- 100 页以上大文档
 - 扫描件 OCR
-- 多文档跨文档问答
-- 微信登录（先用 Github/Google 代替）
-- BM25 混合检索
-- Rerank 重排序
+- 内置 PDF 阅读器与坐标级高亮（`bbox` 预留）
+- Chat 路由默认未接 `**hybridSearch`\*\*（`db.ts` 已具备能力，启用需产品与联调决策）
+- 上传接口当前 **1MB** 限制（与「大文档」产品表述冲突时，以代码或后续配置为准）
 
 ---
 
-> **执行原则**：先跑通完整链路，再优化单点性能。
->
-> Day 3 就要能看到：上传文档 → 提问 → 得到回答的完整流程！
+## 风险与规避
+
+| 风险                  | 说明                                                  | 规避方向                                                                |
+| --------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------- |
+| 无文本层 PDF / 扫描版 | `pdf-parse` 几乎无字                                  | 产品提示「仅支持可选中文字的 PDF」；后续再接 OCR                        |
+| Serverless 超时       | 大 PDF 嵌入链路过长                                   | 控制单文件大小与页数；长期可迁异步队列                                  |
+| 模型幻觉              | 通用 LLM 风险                                         | 已用「仅依据检索片段」类系统提示 + 引用编号校验；持续收紧 Prompt 与评测 |
+| 依赖补丁              | `@assistant-ui/react` 使用 `pnpm.patchedDependencies` | 升级该包时需重制 patch 并 `**pnpm install`\*\* 更新锁文件               |
+
+---
+
+## 执行原则
+
+1. **单一事实来源**：表结构与 RLS 以 `**lib/schema.sql`** 为准；类型以 `**database.types.ts**`为准；模块职责以`**lib/README.md\*\*` 为准。
+2. **边界清晰**：含 `OPENAI_API_KEY` / `SUPABASE_SERVICE_ROLE_KEY` 的代码仅在服务端运行。
+3. **先链路后优化**：检索阈值、TopK、切块参数可在不改表结构的情况下迭代。

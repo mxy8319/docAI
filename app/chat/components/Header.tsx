@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { signOut } from "../actions"
 
@@ -32,6 +33,12 @@ export function Header({ user }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        <Link
+          href="/documents"
+          className="hidden rounded-lg px-3 py-2 text-label-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface sm:inline-block"
+        >
+          文档库
+        </Link>
         {user?.image ? (
           <img
             src={user.image}
