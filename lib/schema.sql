@@ -275,7 +275,8 @@ create or replace function public.search_chunks(
   query_embedding vector(1536),
   p_user_id uuid,
   match_threshold float default 0.7,
-  match_count int default 5
+  match_count int default 5,
+  p_document_ids uuid[] default null
 )
 returns table (
   chunk_id uuid,
@@ -314,6 +315,11 @@ begin
   join public.documents d on d.id = dc.document_id
   where d.user_id = p_user_id
     and dc.embedding is not null
+    and (
+      p_document_ids is null
+      or cardinality(p_document_ids) = 0
+      or d.id = any(p_document_ids)
+    )
     and 1 - (dc.embedding <=> query_embedding) > match_threshold
   order by dc.embedding <=> query_embedding
   limit match_count;

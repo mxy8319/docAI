@@ -1,6 +1,11 @@
 import { convertToModelMessages, embed, streamText, type UIMessage } from "ai"
 
-import { semanticSearch, resultsToCitations } from "@/lib/db"
+import {
+  collectDocumentIdsFromScopeDirectives,
+  parseDocumentIdsList,
+  stripDocumentScopeDirectives,
+} from "@/lib/document-scope-text"
+import { getDocumentsByIdsForUser, resultsToCitations, semanticSearch } from "@/lib/db"
 import { CHAT_MODEL, EMBEDDING_MODEL, openai } from "@/lib/openai-provider"
 import { createClient } from "@/lib/supabase-server"
 import {
@@ -62,16 +67,49 @@ export async function POST(req: Request) {
     })
   }
 
-  const queryText = getLatestUserQueryText(messages)
-  if (!queryText) {
-    return new Response(JSON.stringify({ error: "最后一条用户消息无文本内容" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    })
+  const rawText = getLatestUserQueryText(messages)
+  const bodyDocumentIds = parseDocumentIdsList(
+    (body as { documentIds?: unknown }).documentIds
+  )
+  const directiveIds = rawText ? collectDocumentIdsFromScopeDirectives(rawText) : []
+  const requestedIds = bodyDocumentIds.length > 0 ? bodyDocumentIds : directiveIds
+  if (requestedIds.length === 0) {
+    return new Response(
+      JSON.stringify({
+        error: "未指定文档范围：请在输入中使用 @ 选择至少一个已就绪的文档后再提问。",
+      }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    )
+  }
+
+  const scopeDocs = await getDocumentsByIdsForUser(user.id, requestedIds)
+  const readyIds = scopeDocs.filter((d) => d.status === "ready").map((d) => d.id)
+  if (readyIds.length === 0) {
+    return new Response(
+      JSON.stringify({
+        error:
+          "所选文档尚未就绪或无效：请仅 @ 状态为「就绪」的文档，或等待处理完成后再提问。",
+      }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    )
   }
 
   const topK = parseIntEnv(process.env.RAG_TOP_K, 8)
   const threshold = parseFloatEnv(process.env.RAG_MATCH_THRESHOLD, 0.45)
+
+  const questionText = stripDocumentScopeDirectives(rawText).trim()
+  const queryText =
+    questionText ||
+    scopeDocs
+      .filter((d) => readyIds.includes(d.id))
+      .map((d) => d.file_name)
+      .join(" ")
 
   try {
     const { embedding } = await embed({
@@ -83,10 +121,13 @@ export async function POST(req: Request) {
     const hits = await semanticSearch(embedding, user.id, {
       threshold,
       topK,
+      documentIds: readyIds,
     })
 
     const contextBlock = buildRagContextBlock(hits)
-    const system = buildRagSystemPrompt(contextBlock)
+    const system = buildRagSystemPrompt(contextBlock, {
+      fileNames: scopeDocs.filter((d) => readyIds.includes(d.id)).map((d) => d.file_name),
+    })
 
     const uiStripped = messages.map(({ id: _id, ...rest }) => rest) as Omit<UIMessage, "id">[]
     const modelMessages = await convertToModelMessages(uiStripped)

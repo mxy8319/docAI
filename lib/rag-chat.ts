@@ -36,9 +36,16 @@ const RAG_INSTRUCTIONS = `你是 DocAI 文档助手。请严格依据下方「�
 - 凡引用片段中的事实、数字、定义或原文措辞，句末或分句末必须标注角标，编号与片段标题一致：可用半角 **[1]、[2]** 或中文 **【1】【2】**；一句可标多个。不要使用未提供的编号，也不要用脚注 ^1 等其它样式。
 - 若片段不足以回答，请直接说明，并简述还缺少什么信息。`
 
-export function buildRagSystemPrompt(contextBlock: string): string {
+export function buildRagSystemPrompt(
+  contextBlock: string,
+  scope?: { fileNames: string[] }
+): string {
+  const scopeBlock =
+    scope && scope.fileNames.length > 0
+      ? `\n## 本次问答绑定文档（仅允许使用下列文件名对应的检索片段）\n${scope.fileNames.map((n) => `- ${n}`).join("\n")}\n`
+      : ""
   return `${RAG_INSTRUCTIONS}
-
+${scopeBlock}
 ## 本次检索到的片段
 
 ${contextBlock}`

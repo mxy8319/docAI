@@ -8,6 +8,7 @@ import { signOut } from "@/app/chat/actions"
 import { cn } from "@/lib/utils"
 
 export type WorkspaceUser = {
+  id: string
   email: string | undefined
   name: string | null | undefined
   image: string | null | undefined

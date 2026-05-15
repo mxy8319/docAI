@@ -1,17 +1,44 @@
 diff --git a/dist/primitives/composer/ComposerInput.js b/dist/primitives/composer/ComposerInput.js
-index 65d9274f51799f8b49a12a926a5ad7e9d3f6e0a0..e946105367157a63db45dcfcaa2d73d6c0d7cb65 100644
+index 65d9274f51799f8b49a12a926a5ad7e9d3f6e0a0..b3e4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2 100644
 --- a/dist/primitives/composer/ComposerInput.js
 +++ b/dist/primitives/composer/ComposerInput.js
-@@ -161,10 +161,8 @@ export const ComposerPrimitiveInput = forwardRef(({ autoFocus = false, asChild,
+@@ -37,9 +37,12 @@ export const ComposerPrimitiveInput = forwardRef(({ autoFocus = false, asChild,
+     const pluginRegistry = useComposerInputPluginRegistryOptional();
+     const effectiveSubmitMode = submitMode ?? (submitOnEnter === false ? "none" : "enter");
+     const value = useAuiState((s) => {
+-        if (!s.composer.isEditing)
++        const c = s.composer;
++        if (c.type === "thread")
++            return c.text ?? "";
++        if (!c.isEditing)
+             return "";
+-        return s.composer.text;
++        return c.text ?? "";
+     });
+     const isDisabled = useAuiState((s) => s.thread.isDisabled || s.composer.dictation?.inputDisabled) || disabledProp;
+     const textareaRef = useRef(null);
+@@ -159,12 +162,9 @@ export const ComposerPrimitiveInput = forwardRef(({ autoFocus = false, asChild,
+         ref: ref,
+         disabled: isDisabled,
          onChange: composeEventHandlers(onChange, (e) => {
-             if (!aui.composer().getState().isEditing)
+-            if (!aui.composer().getState().isEditing)
++            const st = aui.composer().getState();
++            if (st.type !== "thread" && !st.isEditing)
                  return;
 -            const isComposing = e.nativeEvent.isComposing === true ||
 -                compositionRef.current;
 -            if (isComposing)
 -                return;
-+            // Sync on every change (including IME composition) so controlled `value`
-+            // matches the textarea; skipping updates during CJK composition breaks input.
              flushResourcesSync(() => {
                  aui.composer().setText(e.target.value);
              });
+@@ -183,7 +183,8 @@ export const ComposerPrimitiveInput = forwardRef(({ autoFocus = false, asChild,
+         onCompositionEnd: composeEventHandlers(rest
+             .onCompositionEnd, (e) => {
+             compositionRef.current = false;
+-            if (!aui.composer().getState().isEditing)
++            const st = aui.composer().getState();
++            if (st.type !== "thread" && !st.isEditing)
+                 return;
+             const target = e.target;
+             flushResourcesSync(() => {

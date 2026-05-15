@@ -13,11 +13,13 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "validate": "pnpm run lint && pnpm run format:check",
     "typecheck": "tsc --noEmit",
-    "check:openai": "node scripts/openai-connect-check.mjs"
+    "check:openai": "node scripts/openai-connect-check.mjs",
+    "storage:empty-documents": "node scripts/storage-empty-documents-bucket.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.62",
     "@ai-sdk/react": "^3.0.170",
+    "@assistant-ui/core": "^0.1.17",
     "@assistant-ui/react": "^0.12.28",
     "@assistant-ui/react-ai-sdk": "^1.3.21",
     "@assistant-ui/react-markdown": "^0.12.11",

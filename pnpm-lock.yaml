@@ -19,6 +19,9 @@ importers:
       '@ai-sdk/react':
         specifier: ^3.0.170
         version: 3.0.177(react@18.3.1)(zod@4.4.3)
+      '@assistant-ui/core':
+        specifier: ^0.1.17
+        version: 0.1.17(@assistant-ui/store@0.2.9(@assistant-ui/tap@0.5.10(@types/react@18.3.28)(react@18.3.1))(@types/react@18.3.28)(react@18.3.1))(@assistant-ui/tap@0.5.10(@types/react@18.3.28)(react@18.3.1))(@types/react@18.3.28)(assistant-cloud@0.1.27)(react@18.3.1)(zustand@5.0.13(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)))
       '@assistant-ui/react':
         specifier: ^0.12.28
         version: 0.12.28(patch_hash=ela7ttbm5s3vldo2epctaf2nii)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))

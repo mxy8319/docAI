@@ -1,3 +1,9 @@
+import { ComposerDocumentAtPopover } from "@/app/chat/components/ComposerDocumentAt"
+import {
+  ComposerDirectiveSanitizer,
+  useComposerDocumentScope,
+} from "@/app/chat/components/ComposerDocumentScopeContext"
+import { ComposerDocumentScopeChips } from "@/app/chat/components/ComposerDocumentScopeChips"
 import { ComposerAddAttachment } from "@/components/assistant-ui/attachment"
 import { CitationMarkdownText } from "@/components/assistant-ui/citation-markdown-text"
 import { RagSourceChips } from "@/components/assistant-ui/rag-source-chips"
@@ -45,7 +51,7 @@ import {
 } from "lucide-react"
 import type { FC } from "react"
 
-export const Thread: FC = () => {
+export const Thread: FC<{ userId: string }> = ({ userId }) => {
   return (
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container flex h-full min-h-0 flex-col bg-surface"
@@ -71,7 +77,7 @@ export const Thread: FC = () => {
 
           <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer sticky bottom-0 mt-auto flex flex-col gap-4 overflow-visible rounded-t-2xl bg-surface-container-lowest pb-4 md:pb-6 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
             <ThreadScrollToBottom />
-            <Composer />
+            <Composer userId={userId} />
           </ThreadPrimitive.ViewportFooter>
         </div>
       </ThreadPrimitive.Viewport>
@@ -150,31 +156,47 @@ const ThreadSuggestionItem: FC = () => {
   )
 }
 
-const Composer: FC = () => {
+const Composer: FC<{ userId: string }> = ({ userId }) => {
   return (
-    <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
-      <div
-        data-slot="aui_composer-shell"
-        className="flex items-center gap-3 rounded-xl border border-outline/20 bg-surface-container-lowest px-4 py-2.5 shadow-sm transition-all focus-within:border-primary/50 focus-within:shadow-md"
-      >
-        <ComposerAddAttachment />
-        <ComposerPrimitive.Input
-          placeholder="Ask anything about your documents..."
-          className="aui-composer-input flex-1 resize-none bg-transparent py-2 text-base text-on-surface outline-none placeholder:text-on-surface-variant"
-          rows={1}
-          autoFocus
-          aria-label="Message input"
-        />
-        <ComposerAction />
-      </div>
-      <p className="mt-2 text-center text-xs text-on-surface-variant">
-        DocAI may provide incomplete information. Verify key findings.
-      </p>
-    </ComposerPrimitive.Root>
+    <div className="aui-composer-root relative flex w-full flex-col">
+      {/*
+        TriggerPopoverRoot 必须在 Composer.Root 之外（与 assistant-ui 示例一致），
+        否则线程输入框 isEditing / 受控 value 可能异常，导致无法输入。
+      */}
+      <ComposerPrimitive.Unstable_TriggerPopoverRoot>
+        <ComposerDocumentAtPopover userId={userId} />
+        <ComposerDirectiveSanitizer />
+        <ComposerPrimitive.Root className="relative flex w-full flex-col border-0 bg-transparent p-0 shadow-none">
+          <div
+            data-slot="aui_composer-shell"
+            className="flex flex-col gap-1 rounded-xl border border-outline/20 bg-surface-container-lowest px-4 py-2.5 shadow-sm transition-all focus-within:border-primary/50 focus-within:shadow-md"
+          >
+            <ComposerDocumentScopeChips />
+            <div className="flex items-center gap-3">
+              <ComposerAddAttachment />
+              <ComposerPrimitive.Input
+                placeholder="输入 @ 选择文档范围后再提问…"
+                className="aui-composer-input flex-1 resize-none bg-transparent py-2 text-base text-on-surface outline-none placeholder:text-on-surface-variant"
+                rows={1}
+                autoFocus
+                aria-label="Message input"
+              />
+              <ComposerAction />
+            </div>
+          </div>
+        </ComposerPrimitive.Root>
+        <p className="mt-2 text-center text-xs text-on-surface-variant">
+          DocAI may provide incomplete information. Verify key findings.
+        </p>
+      </ComposerPrimitive.Unstable_TriggerPopoverRoot>
+    </div>
   )
 }
 
 const ComposerAction: FC = () => {
+  const { scopedIds } = useComposerDocumentScope()
+  const hasDocScope = scopedIds.length > 0
+
   return (
     <div className="aui-composer-action-wrapper flex items-center">
       <AuiIf condition={(s) => !s.thread.isRunning}>
@@ -183,7 +205,9 @@ const ComposerAction: FC = () => {
             type="button"
             variant="default"
             size="icon"
-            className="aui-composer-send h-10 w-10 rounded-xl bg-primary text-on-primary shadow-md transition-all hover:bg-primary/90 hover:shadow-lg"
+            disabled={!hasDocScope}
+            title={hasDocScope ? "发送" : "请先使用 @ 选择至少一个已就绪的文档"}
+            className="aui-composer-send h-10 w-10 rounded-xl bg-primary text-on-primary shadow-md transition-all hover:bg-primary/90 hover:shadow-lg disabled:pointer-events-auto disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Send message"
           >
             <ArrowRightIcon className="aui-composer-send-icon h-5 w-5" />

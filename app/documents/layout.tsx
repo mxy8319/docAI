@@ -19,6 +19,7 @@ export default async function DocumentsLayout({ children }: { children: ReactNod
     <WorkspacePageShell
       active="documents"
       user={{
+        id: user.id,
         email: user.email,
         name: (metadata.name || metadata.user_name) as string | undefined,
         image: metadata.avatar_url as string | undefined,

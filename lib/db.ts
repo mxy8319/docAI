@@ -82,6 +82,27 @@ export async function getDocuments(userId: string): Promise<Document[]> {
 }
 
 /**
+ * 按 id 批量读取文档（校验归属）；用于 @ 范围等。
+ */
+export async function getDocumentsByIdsForUser(
+  userId: string,
+  ids: string[]
+): Promise<Document[]> {
+  if (ids.length === 0) return []
+  const { data, error } = await supabaseAdmin
+    .from("documents")
+    .select("*")
+    .eq("user_id", userId)
+    .in("id", ids)
+
+  if (error) {
+    throw new Error(`按 id 查询文档失败: ${error.message}`)
+  }
+
+  return (data || []) as Document[]
+}
+
+/**
  * 获取单个文档
  */
 export async function getDocument(documentId: string): Promise<Document | null> {
@@ -403,15 +424,19 @@ export async function semanticSearch(
   options: {
     threshold?: number
     topK?: number
+    /** 仅在这些文档 id 内检索；非空时 RPC 会限制 `document_id` */
+    documentIds?: string[] | null
   } = {}
 ): Promise<SearchResult[]> {
-  const { threshold = 0.7, topK = 5 } = options
+  const { threshold = 0.7, topK = 5, documentIds } = options
 
   const { data, error } = await supabaseAdmin.rpc("search_chunks", {
     query_embedding: queryEmbedding,
     p_user_id: userId,
     match_threshold: threshold,
     match_count: topK,
+    p_document_ids:
+      documentIds && documentIds.length > 0 ? documentIds : null,
   })
 
   if (error) {
