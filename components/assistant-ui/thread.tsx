@@ -111,10 +111,10 @@ const ThreadWelcome: FC = () => {
         </div>
         <div className="aui-thread-welcome-message flex size-full flex-col justify-center px-4">
           <h1 className="aui-thread-welcome-message-inner mb-2 font-semibold text-2xl text-on-surface">
-            Afternoon, Sarah.
+            你好
           </h1>
           <p className="aui-thread-welcome-message-inner text-lg text-on-surface-variant">
-            Your forest of knowledge is ready for exploration. What shall we find today?
+            文档库已就绪。上传文档后，可在此基于库内片段提问与探索。
           </p>
         </div>
       </div>
